@@ -12,6 +12,24 @@ enum Role {
   ENTREPRISE
 }
 
+enum DeliveryMode {
+  WITH_DELIVERY
+  WITHOUT_DELIVERY
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
+  PREPARING
+  PICKED_UP
+}
+
+enum OrderItemType {
+  PRODUCT
+  MENU
+}
+
 model UserAuth {
   id         Int         @id @default(autoincrement())
   role       Role
@@ -19,6 +37,7 @@ model UserAuth {
   client     Client?
   entreprise Entreprise?
   sessions   Session[]
+  ordersPlaced Order[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }
@@ -38,7 +57,97 @@ model Entreprise {
   nomEntreprise String   @unique
   userAuthId   Int      @unique
   userAuth     UserAuth @relation(fields: [userAuthId], references: [id], onDelete: Cascade)
+  products     Product[]
+  menus        Menu[]
+  ordersReceived Order[]
   createdAt    DateTime @default(now())
+}
+
+model Product {
+  id                 Int         @id @default(autoincrement())
+  entrepriseId       Int
+  entreprise         Entreprise  @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  name               String
+  imageUrl           String?
+  priceWithDelivery  Decimal     @db.Decimal(10, 2)
+  priceWithoutDelivery Decimal   @db.Decimal(10, 2)
+  isActive           Boolean     @default(true)
+  menuProducts       MenuProduct[]
+  orderItems         OrderItem[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([entrepriseId])
+  @@index([isActive])
+}
+
+model Menu {
+  id                 Int         @id @default(autoincrement())
+  entrepriseId       Int
+  entreprise         Entreprise  @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  name               String
+  imageUrl           String?
+  priceWithDelivery  Decimal     @db.Decimal(10, 2)
+  priceWithoutDelivery Decimal   @db.Decimal(10, 2)
+  isActive           Boolean     @default(true)
+  products           MenuProduct[]
+  orderItems         OrderItem[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([entrepriseId])
+  @@index([isActive])
+}
+
+model MenuProduct {
+  menuId     Int
+  productId  Int
+  quantity   Int      @default(1)
+  menu       Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([menuId, productId])
+}
+
+model Order {
+  id                Int          @id @default(autoincrement())
+  buyerUserAuthId   Int
+  sellerEntrepriseId Int
+  buyerUserAuth     UserAuth     @relation(fields: [buyerUserAuthId], references: [id], onDelete: Cascade)
+  sellerEntreprise  Entreprise   @relation(fields: [sellerEntrepriseId], references: [id], onDelete: Cascade)
+  status            OrderStatus  @default(PENDING)
+  deliveryMode      DeliveryMode
+  receptionDate     DateTime
+  buyerNote         String?
+  sellerNote        String?
+  items             OrderItem[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([buyerUserAuthId])
+  @@index([sellerEntrepriseId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          Int           @id @default(autoincrement())
+  orderId     Int
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemType    OrderItemType
+  productId   Int?
+  menuId      Int?
+  product     Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  menu        Menu?         @relation(fields: [menuId], references: [id], onDelete: SetNull)
+  itemName    String
+  quantity    Int
+  unitPrice   Decimal       @db.Decimal(10, 2)
+  totalPrice  Decimal       @db.Decimal(10, 2)
+  createdAt   DateTime      @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([menuId])
 }
 
 model Session {
