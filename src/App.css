@@ -1,42 +1,78 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+.auth-page {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 20px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.auth-card {
+  width: min(460px, 100%);
+  background: #ffffff;
+  border: 1px solid #d8e1eb;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgb(15 23 42 / 7%);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.auth-card h1 {
+  margin: 0 0 14px;
+  font-size: 1.55rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.auth-form {
+  display: grid;
+  gap: 10px;
 }
 
-.card {
-  padding: 2em;
+.auth-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+  color: #334155;
 }
 
-.read-the-docs {
-  color: #888;
+.auth-form input,
+.auth-form select {
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 10px;
+  font: inherit;
+}
+
+.auth-form button,
+.auth-card > button {
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: #0f6fcb;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.auth-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0;
+  color: #b91c1c;
+}
+
+.success {
+  margin: 0;
+  color: #0f766e;
+}
+
+.auth-link {
+  margin: 14px 0 0;
+  color: #334155;
+}
+
+.auth-link a {
+  color: #0f6fcb;
+  font-weight: 600;
 }
