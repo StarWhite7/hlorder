@@ -4,12 +4,32 @@ import { getEntrepriseByUserAuthId } from './_lib/entreprise.js'
 
 const toMoney = (value) => Number(Number(value).toFixed(2))
 
+const CATALOG_TYPES = {
+  CLIENT: 'CLIENT',
+  ENTREPRISE: 'ENTREPRISE',
+}
+
+const normalizeCatalogType = (rawValue) => {
+  const value = String(rawValue || '').trim().toUpperCase()
+  return Object.values(CATALOG_TYPES).includes(value) ? value : null
+}
+
+const catalogTypeForRole = (role) =>
+  role === CATALOG_TYPES.ENTREPRISE
+    ? CATALOG_TYPES.ENTREPRISE
+    : CATALOG_TYPES.CLIENT
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const auth = await requireAuth(req, res)
     if (!auth) return
 
     const mine = String(req.query?.mine || 'false') === 'true'
+    const queryCatalogType = normalizeCatalogType(req.query?.catalogType)
+
+    if (req.query?.catalogType && !queryCatalogType) {
+      return res.status(400).json({ error: 'catalogType invalide' })
+    }
 
     try {
       if (mine) {
@@ -23,7 +43,10 @@ export default async function handler(req, res) {
         }
 
         const menus = await prisma.menu.findMany({
-          where: { entrepriseId: entreprise.id },
+          where: {
+            entrepriseId: entreprise.id,
+            ...(queryCatalogType ? { catalogType: queryCatalogType } : {}),
+          },
           include: {
             products: {
               include: {
@@ -39,8 +62,13 @@ export default async function handler(req, res) {
         return res.status(200).json({ menus })
       }
 
+      const visibleCatalogType = catalogTypeForRole(auth.role)
+
       const menus = await prisma.menu.findMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          catalogType: visibleCatalogType,
+        },
         include: {
           entreprise: {
             select: { id: true, nomEntreprise: true },
@@ -66,7 +94,14 @@ export default async function handler(req, res) {
     const auth = await requireAuth(req, res, { roles: ['ENTREPRISE'] })
     if (!auth) return
 
-    const { name, imageUrl, priceWithDelivery, priceWithoutDelivery, items } =
+    const {
+      name,
+      imageUrl,
+      priceWithDelivery,
+      priceWithoutDelivery,
+      items,
+      catalogType,
+    } =
       req.body ?? {}
 
     if (
@@ -94,6 +129,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Prix invalides' })
     }
 
+    const requestedCatalogType = normalizeCatalogType(catalogType)
+    const normalizedCatalogType = requestedCatalogType || CATALOG_TYPES.CLIENT
+
+    if (catalogType != null && !requestedCatalogType) {
+      return res.status(400).json({ error: 'catalogType invalide' })
+    }
+
     try {
       const entreprise = await getEntrepriseByUserAuthId(auth.userAuthId)
       if (!entreprise) {
@@ -117,6 +159,7 @@ export default async function handler(req, res) {
           id: { in: productIds },
           entrepriseId: entreprise.id,
           isActive: true,
+          catalogType: normalizedCatalogType,
         },
         select: { id: true },
       })
@@ -132,6 +175,7 @@ export default async function handler(req, res) {
         const createdMenu = await tx.menu.create({
           data: {
             entrepriseId: entreprise.id,
+            catalogType: normalizedCatalogType,
             name: String(name).trim(),
             imageUrl: imageUrl ? String(imageUrl).trim() : null,
             priceWithDelivery: toMoney(withDelivery),

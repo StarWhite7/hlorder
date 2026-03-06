@@ -30,7 +30,7 @@ const RegisterPage = () => {
         : { role, nomEntreprise, password }
 
     try {
-      const response = await fetch('/api/register', {
+      const response = await fetch('/api/auth?action=register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

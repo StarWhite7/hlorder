@@ -12,6 +12,11 @@ const ITEM_TYPES = {
   MENU: 'MENU',
 }
 
+const CATALOG_TYPES = {
+  CLIENT: 'CLIENT',
+  ENTREPRISE: 'ENTREPRISE',
+}
+
 const toMoney = (value) => Number(Number(value).toFixed(2))
 
 const getPriceByDeliveryMode = (entity, deliveryMode) =>
@@ -108,6 +113,11 @@ export default async function handler(req, res) {
     }
 
     try {
+      const expectedCatalogType =
+        auth.role === 'ENTREPRISE'
+          ? CATALOG_TYPES.ENTREPRISE
+          : CATALOG_TYPES.CLIENT
+
       if (auth.role === 'ENTREPRISE') {
         const buyerEntreprise = await getEntrepriseByUserAuthId(auth.userAuthId)
         if (buyerEntreprise && buyerEntreprise.id === parsedSellerEntrepriseId) {
@@ -164,6 +174,7 @@ export default async function handler(req, res) {
                 id: { in: productIds },
                 entrepriseId: parsedSellerEntrepriseId,
                 isActive: true,
+                catalogType: expectedCatalogType,
               },
               select: {
                 id: true,
@@ -179,6 +190,7 @@ export default async function handler(req, res) {
                 id: { in: menuIds },
                 entrepriseId: parsedSellerEntrepriseId,
                 isActive: true,
+                catalogType: expectedCatalogType,
               },
               select: {
                 id: true,

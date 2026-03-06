@@ -30,6 +30,11 @@ enum OrderItemType {
   MENU
 }
 
+enum CatalogType {
+  CLIENT
+  ENTREPRISE
+}
+
 model UserAuth {
   id         Int         @id @default(autoincrement())
   role       Role
@@ -84,6 +89,7 @@ model Product {
   id                 Int         @id @default(autoincrement())
   entrepriseId       Int
   entreprise         Entreprise  @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  catalogType        CatalogType @default(CLIENT)
   name               String
   imageUrl           String?
   priceWithDelivery  Decimal     @db.Decimal(10, 2)
@@ -96,12 +102,15 @@ model Product {
 
   @@index([entrepriseId])
   @@index([isActive])
+  @@index([catalogType])
+  @@index([catalogType, isActive])
 }
 
 model Menu {
   id                 Int         @id @default(autoincrement())
   entrepriseId       Int
   entreprise         Entreprise  @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  catalogType        CatalogType @default(CLIENT)
   name               String
   imageUrl           String?
   priceWithDelivery  Decimal     @db.Decimal(10, 2)
@@ -114,6 +123,8 @@ model Menu {
 
   @@index([entrepriseId])
   @@index([isActive])
+  @@index([catalogType])
+  @@index([catalogType, isActive])
 }
 
 model MenuProduct {

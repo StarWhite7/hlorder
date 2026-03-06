@@ -24,7 +24,7 @@ function App() {
   const refreshAuth = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/me', {
+      const response = await fetch('/api/auth?action=me', {
         method: 'GET',
         credentials: 'include',
       })
