@@ -1,4 +1,5 @@
 import { prisma } from './_lib/prisma.js'
+import { hashPassword, isBcryptHash, verifyPassword } from './_lib/password.js'
 
 const ROLES = {
   CLIENT: 'CLIENT',
@@ -26,8 +27,20 @@ export default async function handler(req, res) {
         include: { userAuth: true },
       })
 
-      if (!client || client.userAuth.password !== password) {
+      const isValid =
+        client &&
+        (await verifyPassword(password, client.userAuth.password))
+
+      if (!isValid) {
         return res.status(401).json({ error: 'Identifiants invalides' })
+      }
+
+      if (!isBcryptHash(client.userAuth.password)) {
+        const migratedHash = await hashPassword(password)
+        await prisma.userAuth.update({
+          where: { id: client.userAuth.id },
+          data: { password: migratedHash },
+        })
       }
 
       return res.status(200).json({
@@ -44,8 +57,20 @@ export default async function handler(req, res) {
         include: { userAuth: true },
       })
 
-      if (!entreprise || entreprise.userAuth.password !== password) {
+      const isValid =
+        entreprise &&
+        (await verifyPassword(password, entreprise.userAuth.password))
+
+      if (!isValid) {
         return res.status(401).json({ error: 'Identifiants invalides' })
+      }
+
+      if (!isBcryptHash(entreprise.userAuth.password)) {
+        const migratedHash = await hashPassword(password)
+        await prisma.userAuth.update({
+          where: { id: entreprise.userAuth.id },
+          data: { password: migratedHash },
+        })
       }
 
       return res.status(200).json({

@@ -1,4 +1,5 @@
 import { prisma } from './_lib/prisma.js'
+import { hashPassword } from './_lib/password.js'
 
 const ROLES = {
   CLIENT: 'CLIENT',
@@ -25,6 +26,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    const hashedPassword = await hashPassword(password)
+
     if (role === ROLES.CLIENT) {
       if (!pseudo || !nomInGame || !prenomInGame) {
         return res
@@ -36,7 +39,7 @@ export default async function handler(req, res) {
         const userAuth = await tx.userAuth.create({
           data: {
             role: ROLES.CLIENT,
-            password,
+            password: hashedPassword,
           },
         })
 
@@ -68,7 +71,7 @@ export default async function handler(req, res) {
         const userAuth = await tx.userAuth.create({
           data: {
             role: ROLES.ENTREPRISE,
-            password,
+            password: hashedPassword,
           },
         })
 
