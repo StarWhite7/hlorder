@@ -34,12 +34,17 @@ model UserAuth {
   id         Int         @id @default(autoincrement())
   role       Role
   password   String
+  isActive   Boolean     @default(true)
+  deletedAt  DateTime?
   client     Client?
   entreprise Entreprise?
   sessions   Session[]
   ordersPlaced Order[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+
+  @@index([isActive])
+  @@index([deletedAt])
 }
 
 model Client {
@@ -49,7 +54,13 @@ model Client {
   prenomInGame String
   userAuthId Int      @unique
   userAuth   UserAuth @relation(fields: [userAuthId], references: [id], onDelete: Cascade)
+  isActive   Boolean  @default(true)
+  deletedAt  DateTime?
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([deletedAt])
 }
 
 model Entreprise {
@@ -57,10 +68,16 @@ model Entreprise {
   nomEntreprise String   @unique
   userAuthId   Int      @unique
   userAuth     UserAuth @relation(fields: [userAuthId], references: [id], onDelete: Cascade)
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
   products     Product[]
   menus        Menu[]
   ordersReceived Order[]
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([deletedAt])
 }
 
 model Product {

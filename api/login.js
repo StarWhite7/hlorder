@@ -15,6 +15,8 @@ const LOGIN_RATE_LIMIT = {
   blockMs: 15 * 60 * 1000,
 }
 
+const isEnabled = (entity) => entity?.isActive !== false && !entity?.deletedAt
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
@@ -49,9 +51,12 @@ export default async function handler(req, res) {
         include: { userAuth: true },
       })
 
+      if (!client || !isEnabled(client) || !isEnabled(client.userAuth)) {
+        return res.status(401).json({ error: 'Identifiants invalides' })
+      }
+
       const isValid =
-        client &&
-        (await verifyPassword(password, client.userAuth.password))
+        await verifyPassword(password, client.userAuth.password)
 
       if (!isValid) {
         return res.status(401).json({ error: 'Identifiants invalides' })
@@ -86,9 +91,12 @@ export default async function handler(req, res) {
         include: { userAuth: true },
       })
 
+      if (!entreprise || !isEnabled(entreprise) || !isEnabled(entreprise.userAuth)) {
+        return res.status(401).json({ error: 'Identifiants invalides' })
+      }
+
       const isValid =
-        entreprise &&
-        (await verifyPassword(password, entreprise.userAuth.password))
+        await verifyPassword(password, entreprise.userAuth.password)
 
       if (!isValid) {
         return res.status(401).json({ error: 'Identifiants invalides' })

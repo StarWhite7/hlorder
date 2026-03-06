@@ -13,22 +13,38 @@ const hashToken = (token) =>
   createHash('sha256').update(token).digest('hex')
 
 const buildAuthPayload = (userAuth) => {
+  if (!userAuth || !userAuth.isActive || userAuth.deletedAt) {
+    return null
+  }
+
   if (userAuth.role === 'CLIENT') {
+    if (!userAuth.client || !userAuth.client.isActive || userAuth.client.deletedAt) {
+      return null
+    }
+
     return {
       role: userAuth.role,
       userAuthId: userAuth.id,
-      clientId: userAuth.client?.id ?? null,
+      clientId: userAuth.client.id,
       entrepriseId: null,
-      displayName: userAuth.client?.pseudo ?? null,
+      displayName: userAuth.client.pseudo,
     }
+  }
+
+  if (
+    !userAuth.entreprise ||
+    !userAuth.entreprise.isActive ||
+    userAuth.entreprise.deletedAt
+  ) {
+    return null
   }
 
   return {
     role: userAuth.role,
     userAuthId: userAuth.id,
     clientId: null,
-    entrepriseId: userAuth.entreprise?.id ?? null,
-    displayName: userAuth.entreprise?.nomEntreprise ?? null,
+    entrepriseId: userAuth.entreprise.id,
+    displayName: userAuth.entreprise.nomEntreprise,
   }
 }
 
@@ -89,7 +105,15 @@ export const getAuthFromRequest = async (req) => {
     return null
   }
 
-  return buildAuthPayload(session.userAuth)
+  const authPayload = buildAuthPayload(session.userAuth)
+  if (!authPayload) {
+    await prisma.session.deleteMany({
+      where: { tokenHash },
+    })
+    return null
+  }
+
+  return authPayload
 }
 
 export const destroySessionFromRequest = async (req, res) => {
