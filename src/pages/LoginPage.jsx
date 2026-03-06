@@ -6,7 +6,7 @@ const ROLES = {
   ENTREPRISE: 'ENTREPRISE',
 }
 
-const LoginPage = () => {
+const LoginPage = ({ onLoggedIn }) => {
   const navigate = useNavigate()
   const [role, setRole] = useState(ROLES.CLIENT)
   const [identifier, setIdentifier] = useState('')
@@ -26,6 +26,7 @@ const LoginPage = () => {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           role,
           identifier,
@@ -38,7 +39,10 @@ const LoginPage = () => {
         throw new Error(payload.error || 'Connexion impossible')
       }
 
-      window.localStorage.setItem('hlorder_auth', JSON.stringify(payload))
+      if (typeof onLoggedIn === 'function') {
+        await onLoggedIn()
+      }
+
       navigate('/', { replace: true })
     } catch (err) {
       setError(err.message)

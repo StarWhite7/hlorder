@@ -33,6 +33,7 @@ const RegisterPage = () => {
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
       })
 
@@ -120,6 +121,7 @@ const RegisterPage = () => {
             Mot de passe
             <input
               type="password"
+              minLength={8}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required

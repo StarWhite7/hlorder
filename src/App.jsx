@@ -1,47 +1,67 @@
+import { useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import './App.css'
 
-const readAuth = () => {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.localStorage.getItem('hlorder_auth')
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
-const ProtectedRoute = ({ children }) => {
-  const auth = readAuth()
+const ProtectedRoute = ({ auth, loading, children }) => {
+  if (loading) return <main className="auth-page">Chargement session...</main>
   if (!auth) return <Navigate to="/login" replace />
   return children
 }
 
-const PublicOnlyRoute = ({ children }) => {
-  const auth = readAuth()
+const PublicOnlyRoute = ({ auth, loading, children }) => {
+  if (loading) return <main className="auth-page">Chargement session...</main>
   if (auth) return <Navigate to="/" replace />
   return children
 }
 
 function App() {
+  const [auth, setAuth] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const refreshAuth = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/me', {
+        method: 'GET',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        setAuth(null)
+        return
+      }
+
+      const payload = await response.json()
+      setAuth(payload)
+    } catch {
+      setAuth(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshAuth()
+  }, [refreshAuth])
+
   return (
     <BrowserRouter>
       <Routes>
         <Route
           path="/login"
           element={
-            <PublicOnlyRoute>
-              <LoginPage />
+            <PublicOnlyRoute auth={auth} loading={loading}>
+              <LoginPage onLoggedIn={refreshAuth} />
             </PublicOnlyRoute>
           }
         />
         <Route
           path="/register"
           element={
-            <PublicOnlyRoute>
+            <PublicOnlyRoute auth={auth} loading={loading}>
               <RegisterPage />
             </PublicOnlyRoute>
           }
@@ -49,8 +69,8 @@ function App() {
         <Route
           path="/"
           element={
-            <ProtectedRoute>
-              <DashboardPage />
+            <ProtectedRoute auth={auth} loading={loading}>
+              <DashboardPage auth={auth} onLoggedOut={refreshAuth} />
             </ProtectedRoute>
           }
         />

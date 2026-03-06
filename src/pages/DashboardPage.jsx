@@ -1,21 +1,31 @@
-import { useMemo } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-const DashboardPage = () => {
+const DashboardPage = ({ auth, onLoggedOut }) => {
   const navigate = useNavigate()
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const auth = useMemo(() => {
+  const handleLogout = async () => {
+    setError('')
+    setLoading(true)
+
     try {
-      const raw = window.localStorage.getItem('hlorder_auth')
-      return raw ? JSON.parse(raw) : null
-    } catch {
-      return null
-    }
-  }, [])
+      await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
 
-  const handleLogout = () => {
-    window.localStorage.removeItem('hlorder_auth')
-    navigate('/login', { replace: true })
+      if (typeof onLoggedOut === 'function') {
+        await onLoggedOut()
+      }
+
+      navigate('/login', { replace: true })
+    } catch {
+      setError('Erreur lors de la deconnexion')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -27,8 +37,9 @@ const DashboardPage = () => {
         <p>ID Auth: {auth?.userAuthId ?? '-'}</p>
         {auth?.clientId && <p>ID Client: {auth.clientId}</p>}
         {auth?.entrepriseId && <p>ID Entreprise: {auth.entrepriseId}</p>}
-        <button type="button" onClick={handleLogout}>
-          Se deconnecter
+        {error && <p className="error">{error}</p>}
+        <button type="button" onClick={handleLogout} disabled={loading}>
+          {loading ? 'Deconnexion...' : 'Se deconnecter'}
         </button>
       </section>
     </main>

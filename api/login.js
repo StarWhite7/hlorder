@@ -1,9 +1,18 @@
 import { prisma } from './_lib/prisma.js'
 import { hashPassword, isBcryptHash, verifyPassword } from './_lib/password.js'
+import { createSessionForUser } from './_lib/session.js'
+import { clearRateLimit, consumeRateLimit } from './_lib/rateLimit.js'
 
 const ROLES = {
   CLIENT: 'CLIENT',
   ENTREPRISE: 'ENTREPRISE',
+}
+
+const LOGIN_RATE_LIMIT = {
+  action: 'login',
+  maxAttempts: 7,
+  windowMs: 15 * 60 * 1000,
+  blockMs: 15 * 60 * 1000,
 }
 
 export default async function handler(req, res) {
@@ -21,6 +30,19 @@ export default async function handler(req, res) {
   }
 
   try {
+    const rateLimitResult = await consumeRateLimit(req, {
+      ...LOGIN_RATE_LIMIT,
+      role,
+      identifier,
+    })
+
+    if (!rateLimitResult.allowed) {
+      res.setHeader('Retry-After', String(rateLimitResult.retryAfterSeconds))
+      return res.status(429).json({
+        error: 'Trop de tentatives. Reessaie plus tard.',
+      })
+    }
+
     if (role === ROLES.CLIENT) {
       const client = await prisma.client.findUnique({
         where: { pseudo: identifier },
@@ -42,6 +64,13 @@ export default async function handler(req, res) {
           data: { password: migratedHash },
         })
       }
+
+      await createSessionForUser(res, client.userAuth.id)
+      await clearRateLimit(req, {
+        action: LOGIN_RATE_LIMIT.action,
+        role,
+        identifier,
+      })
 
       return res.status(200).json({
         role: ROLES.CLIENT,
@@ -72,6 +101,13 @@ export default async function handler(req, res) {
           data: { password: migratedHash },
         })
       }
+
+      await createSessionForUser(res, entreprise.userAuth.id)
+      await clearRateLimit(req, {
+        action: LOGIN_RATE_LIMIT.action,
+        role,
+        identifier,
+      })
 
       return res.status(200).json({
         role: ROLES.ENTREPRISE,

@@ -18,6 +18,7 @@ model UserAuth {
   password   String
   client     Client?
   entreprise Entreprise?
+  sessions   Session[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }
@@ -38,4 +39,27 @@ model Entreprise {
   userAuthId   Int      @unique
   userAuth     UserAuth @relation(fields: [userAuthId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  userAuthId Int
+  userAuth  UserAuth @relation(fields: [userAuthId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userAuthId])
+  @@index([expiresAt])
+}
+
+model AuthThrottle {
+  key         String   @id
+  attempts    Int      @default(0)
+  windowStart DateTime @default(now())
+  blockedUntil DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([blockedUntil])
 }
