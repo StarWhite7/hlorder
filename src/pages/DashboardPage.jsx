@@ -1517,6 +1517,8 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
     () => cartWithPrices.reduce((sum, line) => sum + line.lineTotal, 0),
     [cartWithPrices],
   )
+  const todayInputDate = getTodayInputDate()
+  const isReceptionDateValid = Boolean(receptionDate) && receptionDate >= todayInputDate
 
   const updateCardQuantityInput = (itemKey, rawValue) => {
     if (rawValue === '') {
@@ -1589,6 +1591,11 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
 
     if (cart.length === 0) {
       setError('Ajoute au moins un produit ou menu.')
+      return
+    }
+
+    if (!isReceptionDateValid) {
+      setError("La date de réception doit être aujourd'hui ou une date future.")
       return
     }
 
@@ -1895,7 +1902,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                   Date de réception
                   <input
                     type="date"
-                    min={getTodayInputDate()}
+                    min={todayInputDate}
                     value={receptionDate}
                     onChange={(event) => setReceptionDate(event.target.value)}
                     disabled={busy}
@@ -1921,7 +1928,12 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                 <button
                   type="button"
                   onClick={handlePlaceOrder}
-                  disabled={busy || !selectedEntreprise || cart.length === 0}
+                  disabled={
+                    busy ||
+                    !selectedEntreprise ||
+                    cart.length === 0 ||
+                    !isReceptionDateValid
+                  }
                 >
                   Envoyer la commande
                 </button>
