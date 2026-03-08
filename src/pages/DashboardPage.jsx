@@ -80,6 +80,15 @@ const formatDate = (value) => {
   }).format(date)
 }
 
+const formatDateOnly = (value) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'short',
+  }).format(date)
+}
+
 const getTodayInputDate = () => {
   const now = new Date()
   const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
@@ -114,6 +123,24 @@ const OrderCard = ({ order, note, onChangeNote, onUpdateStatus, busy }) => {
     (sum, item) => sum + Number(item.totalPrice || 0),
     0,
   )
+  const itemLines =
+    (order.items || [])
+      .map((item) => {
+        const baseLine = `${item.quantity}x - ${item.itemName}`
+        if (item.itemType !== ITEM_TYPES.MENU) return baseLine
+
+        const menuProducts = item.menu?.products || []
+        if (menuProducts.length === 0) return baseLine
+
+        const compositionLines = menuProducts.map((entry) => {
+          const unitQuantity = Number(entry.quantity || 1)
+          const totalQuantity = Number(item.quantity || 0) * unitQuantity
+          return `     ${totalQuantity}x ${entry.product?.name || 'Produit'}`
+        })
+
+        return `${baseLine} :\n${compositionLines.join('\n')}`
+      })
+      .join('\n') || 'Aucun article'
 
   return (
     <article className="order-card">
@@ -128,12 +155,14 @@ const OrderCard = ({ order, note, onChangeNote, onUpdateStatus, busy }) => {
       </header>
 
       <p className="small muted">
-        Créée: {formatDate(order.createdAt)} | Réception: {formatDate(order.receptionDate)}
+        Créée: {formatDate(order.createdAt)} | Réception de la commande:{' '}
+        {formatDateOnly(order.receptionDate)}
       </p>
       <p className="small">
         Total: <strong>{formatMoney(total)}</strong>
       </p>
-      <p className="small">{(order.items || []).map((i) => `${i.itemName} x${i.quantity}`).join(', ')}</p>
+      <div className="order-divider" />
+      <p className="small order-items">{itemLines}</p>
 
       <textarea
         rows={2}
@@ -807,7 +836,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
               <p className="muted">
                 {orderViewMode === ORDER_VIEW_MODES.CURRENT
                   ? 'Aucune commande en cours pour le moment.'
-                  : 'Aucune commande dans lâ€™historique pour le moment.'}
+                  : "Aucune commande dans l'historique pour le moment."}
               </p>
             ) : null}
           </div>
@@ -1147,7 +1176,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
                   )
                 })}
                 {menuProducts.length === 0 ? (
-                  <p className="muted small">Ajoute dâ€™abord des produits.</p>
+                  <p className="muted small">Ajoute d'abord des produits.</p>
                 ) : null}
               </div>
               <button

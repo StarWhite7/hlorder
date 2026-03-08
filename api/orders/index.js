@@ -24,6 +24,22 @@ const getPriceByDeliveryMode = (entity, deliveryMode) =>
     ? Number(entity.priceWithDelivery)
     : Number(entity.priceWithoutDelivery)
 
+const orderItemsInclude = {
+  include: {
+    menu: {
+      include: {
+        products: {
+          include: {
+            product: {
+              select: { id: true, name: true },
+            },
+          },
+        },
+      },
+    },
+  },
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const auth = await requireAuth(req, res)
@@ -38,7 +54,7 @@ export default async function handler(req, res) {
           sellerEntreprise: {
             select: { id: true, nomEntreprise: true },
           },
-          items: true,
+          items: orderItemsInclude,
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -62,7 +78,7 @@ export default async function handler(req, res) {
                   },
                 },
               },
-              items: true,
+              items: orderItemsInclude,
             },
             orderBy: { createdAt: 'desc' },
           })
@@ -259,7 +275,7 @@ export default async function handler(req, res) {
           sellerEntreprise: {
             select: { id: true, nomEntreprise: true },
           },
-          items: true,
+          items: orderItemsInclude,
         },
       })
 
