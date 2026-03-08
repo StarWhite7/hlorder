@@ -1386,6 +1386,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
         itemId: item.id,
         name: item.name,
         details: 'Produit',
+        imageUrl: item.imageUrl || '',
         priceWithDelivery: Number(item.priceWithDelivery),
         priceWithoutDelivery: Number(item.priceWithoutDelivery),
       }))
@@ -1401,6 +1402,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
           (item.products || [])
             .map((entry) => `${entry.product?.name || 'Produit'} x${entry.quantity}`)
             .join(', ') || 'Menu',
+        imageUrl: item.imageUrl || '',
         priceWithDelivery: Number(item.priceWithDelivery),
         priceWithoutDelivery: Number(item.priceWithoutDelivery),
       }))
@@ -1541,60 +1543,67 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
       ) : null}
 
       <section className="client-grid">
-        <article className="panel scroll-panel">
-          <h2>Entreprises</h2>
-          <div className="stack-scroll">
-            {entreprises.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`enterprise-choice-button ${
-                  selectedEntrepriseId === item.id ? 'active' : ''
-                }`}
-                onClick={() => handleSelectEntreprise(item.id)}
-                disabled={busy}
-              >
-                {item.nomEntreprise}
-              </button>
-            ))}
-            {entreprises.length === 0 ? (
-              <p className="muted">Aucune entreprise disponible.</p>
-            ) : null}
-          </div>
-        </article>
+        <div className="client-left-column">
+          <article className="panel client-enterprise-bar">
+            <h2>Entreprises</h2>
+            <div className="enterprise-horizontal-list">
+              {entreprises.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`enterprise-choice-button ${
+                    selectedEntrepriseId === item.id ? 'active' : ''
+                  }`}
+                  onClick={() => handleSelectEntreprise(item.id)}
+                  disabled={busy}
+                >
+                  {item.nomEntreprise}
+                </button>
+              ))}
+              {entreprises.length === 0 ? (
+                <p className="muted">Aucune entreprise disponible.</p>
+              ) : null}
+            </div>
+          </article>
 
-        <article className="panel scroll-panel">
-          <h2>
-            {selectedEntreprise
-              ? `Carte client - ${selectedEntreprise.nomEntreprise}`
-              : 'Choisis une entreprise'}
-          </h2>
-          <div className="stack-scroll client-catalog-list">
-            {orderableItems.map((item) => (
-              <article key={item.key} className="client-item-card">
-                <div className="client-item-head">
-                  <strong>{item.name}</strong>
-                  <span>
+          <article className="panel scroll-panel client-catalog-panel">
+            <h2>
+              {selectedEntreprise
+                ? `Carte client - ${selectedEntreprise.nomEntreprise}`
+                : 'Choisis une entreprise'}
+            </h2>
+            <div className="stack-scroll client-catalog-grid">
+              {orderableItems.map((item) => (
+                <article key={item.key} className="client-item-tile">
+                  <div className="client-item-image-box">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.name} />
+                    ) : (
+                      <div className="client-item-image-placeholder">Aucune image</div>
+                    )}
+                  </div>
+                  <strong className="client-item-name">{item.name}</strong>
+                  <p className="small muted">{item.details}</p>
+                  <p className="small">
                     {formatMoney(item.priceWithoutDelivery)} /{' '}
                     {formatMoney(item.priceWithDelivery)}
-                  </span>
-                </div>
-                <p className="small muted">{item.details}</p>
-                <button
-                  type="button"
-                  className="client-add-button"
-                  onClick={() => addToCart(item)}
-                  disabled={busy || !selectedEntreprise}
-                >
-                  Ajouter
-                </button>
-              </article>
-            ))}
-            {selectedEntreprise && orderableItems.length === 0 ? (
-              <p className="muted">Aucun produit ou menu pour cette entreprise.</p>
-            ) : null}
-          </div>
-        </article>
+                  </p>
+                  <button
+                    type="button"
+                    className="client-add-button"
+                    onClick={() => addToCart(item)}
+                    disabled={busy || !selectedEntreprise}
+                  >
+                    Ajouter
+                  </button>
+                </article>
+              ))}
+              {selectedEntreprise && orderableItems.length === 0 ? (
+                <p className="muted">Aucun produit ou menu pour cette entreprise.</p>
+              ) : null}
+            </div>
+          </article>
+        </div>
 
         <aside className="panel scroll-panel client-cart-panel">
           <h2>Récapitulatif</h2>
