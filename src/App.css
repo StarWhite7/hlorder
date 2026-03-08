@@ -491,6 +491,30 @@ button:disabled {
   align-content: start;
 }
 
+.client-catalog-head {
+  display: grid;
+  gap: 8px;
+}
+
+.client-filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.client-filter-button {
+  margin-top: 0;
+  height: 34px;
+  min-width: 110px;
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.client-filter-button.active {
+  background: #0f6fcb;
+  color: #fff;
+}
+
 .client-item-tile {
   border: 1px solid #d8e1eb;
   border-radius: 10px;
@@ -530,6 +554,10 @@ button:disabled {
   font-size: 0.95rem;
   color: #0f172a;
   line-height: 1.25;
+}
+
+.client-item-details {
+  white-space: pre-line;
 }
 
 .client-item-card {

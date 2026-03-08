@@ -1305,6 +1305,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
   const [receptionDate, setReceptionDate] = useState(getTodayInputDate())
   const [buyerNote, setBuyerNote] = useState('')
   const [cart, setCart] = useState([])
+  const [catalogItemFilter, setCatalogItemFilter] = useState(ITEM_TYPES.MENU)
 
   const loadData = useCallback(async (options = {}) => {
     const { silent = false } = options
@@ -1400,8 +1401,8 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
         name: `${item.name} (menu)`,
         details:
           (item.products || [])
-            .map((entry) => `${entry.product?.name || 'Produit'} x${entry.quantity}`)
-            .join(', ') || 'Menu',
+            .map((entry) => `${entry.quantity || 1}x - ${entry.product?.name || 'Produit'}`)
+            .join('\n') || 'Menu',
         imageUrl: item.imageUrl || '',
         priceWithDelivery: Number(item.priceWithDelivery),
         priceWithoutDelivery: Number(item.priceWithoutDelivery),
@@ -1411,6 +1412,15 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
       a.name.localeCompare(b.name, 'fr'),
     )
   }, [menus, products, selectedEntrepriseId])
+
+  const visibleOrderableItems = useMemo(
+    () => orderableItems.filter((item) => item.itemType === catalogItemFilter),
+    [catalogItemFilter, orderableItems],
+  )
+
+  const toggleCatalogItemFilter = (itemType) => {
+    setCatalogItemFilter(itemType)
+  }
 
   const cartWithPrices = useMemo(
     () =>
@@ -1567,13 +1577,37 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
           </article>
 
           <article className="panel scroll-panel client-catalog-panel">
-            <h2>
-              {selectedEntreprise
-                ? `Carte client - ${selectedEntreprise.nomEntreprise}`
-                : 'Choisis une entreprise'}
-            </h2>
+            <div className="client-catalog-head">
+              <h2>
+                {selectedEntreprise
+                  ? `Carte client - ${selectedEntreprise.nomEntreprise}`
+                  : 'Choisis une entreprise'}
+              </h2>
+              <div className="client-filter-row">
+                <button
+                  type="button"
+                  className={`client-filter-button ${
+                    catalogItemFilter === ITEM_TYPES.MENU ? 'active' : ''
+                  }`}
+                  onClick={() => toggleCatalogItemFilter(ITEM_TYPES.MENU)}
+                  disabled={busy}
+                >
+                  Menu
+                </button>
+                <button
+                  type="button"
+                  className={`client-filter-button ${
+                    catalogItemFilter === ITEM_TYPES.PRODUCT ? 'active' : ''
+                  }`}
+                  onClick={() => toggleCatalogItemFilter(ITEM_TYPES.PRODUCT)}
+                  disabled={busy}
+                >
+                  Produit
+                </button>
+              </div>
+            </div>
             <div className="stack-scroll client-catalog-grid">
-              {orderableItems.map((item) => (
+              {visibleOrderableItems.map((item) => (
                 <article key={item.key} className="client-item-tile">
                   <div className="client-item-image-box">
                     {item.imageUrl ? (
@@ -1583,7 +1617,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                     )}
                   </div>
                   <strong className="client-item-name">{item.name}</strong>
-                  <p className="small muted">{item.details}</p>
+                  <p className="small muted client-item-details">{item.details}</p>
                   <p className="small">
                     {formatMoney(item.priceWithoutDelivery)} /{' '}
                     {formatMoney(item.priceWithDelivery)}
@@ -1598,7 +1632,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                   </button>
                 </article>
               ))}
-              {selectedEntreprise && orderableItems.length === 0 ? (
+              {selectedEntreprise && visibleOrderableItems.length === 0 ? (
                 <p className="muted">Aucun produit ou menu pour cette entreprise.</p>
               ) : null}
             </div>
