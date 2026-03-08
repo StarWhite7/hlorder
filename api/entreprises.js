@@ -4,6 +4,7 @@ import { getEntrepriseByUserAuthId } from './_lib/entreprise.js'
 
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 const ALLOWED_IMAGE_PREFIXES = ['data:image/jpeg;base64,', 'data:image/png;base64,']
+const MAX_ENTREPRISE_DESCRIPTION_LENGTH = 60
 
 const isAllowedImage = (value) =>
   ALLOWED_IMAGE_PREFIXES.some((prefix) => String(value).startsWith(prefix))
@@ -103,8 +104,10 @@ export default async function handler(req, res) {
 
     if (description != null) {
       const value = String(description).trim()
-      if (value.length > 120) {
-        return res.status(400).json({ error: 'Description trop longue (120 caracteres max)' })
+      if (value.length > MAX_ENTREPRISE_DESCRIPTION_LENGTH) {
+        return res.status(400).json({
+          error: `Description trop longue (${MAX_ENTREPRISE_DESCRIPTION_LENGTH} caracteres max)`,
+        })
       }
       data.description = value || null
     }

@@ -56,6 +56,7 @@ const HISTORY_ORDER_STATUSES = ['REFUSED', 'PICKED_UP']
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
 const MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
+const MAX_ENTREPRISE_DESCRIPTION_LENGTH = 60
 
 const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {
@@ -512,8 +513,11 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
       return
     }
 
-    if (String(customizationForm.description || '').trim().length > 120) {
-      setError('Description trop longue: 120 caractères maximum.')
+    if (
+      String(customizationForm.description || '').trim().length >
+      MAX_ENTREPRISE_DESCRIPTION_LENGTH
+    ) {
+      setError(`Description trop longue: ${MAX_ENTREPRISE_DESCRIPTION_LENGTH} caractères maximum.`)
       setBusy(false)
       return
     }
@@ -1132,10 +1136,10 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
               </label>
 
               <label>
-                Description (120 caractères max)
+                Description (60 caractères max)
                 <textarea
                   rows={2}
-                  maxLength={120}
+                  maxLength={MAX_ENTREPRISE_DESCRIPTION_LENGTH}
                   value={customizationForm.description}
                   onChange={(event) =>
                     setCustomizationForm((previous) => ({
@@ -1147,7 +1151,8 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
                 />
               </label>
               <p className="small muted customization-counter">
-                {(customizationForm.description || '').length}/120
+                {(customizationForm.description || '').length}/
+                {MAX_ENTREPRISE_DESCRIPTION_LENGTH}
               </p>
 
               <div className="two-cols">
@@ -1992,7 +1997,23 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                   onClick={() => handleSelectEntreprise(item.id)}
                   disabled={busy}
                 >
-                  {item.nomEntreprise}
+                  <div className="enterprise-choice-content">
+                    <div className="enterprise-choice-logo-box">
+                      {item.logoUrl ? (
+                        <img
+                          src={item.logoUrl}
+                          alt={`Logo ${item.nomEntreprise}`}
+                          className="enterprise-choice-logo"
+                        />
+                      ) : (
+                        <div className="enterprise-choice-logo-placeholder">Aucune image</div>
+                      )}
+                    </div>
+                    <strong className="enterprise-choice-name">{item.nomEntreprise}</strong>
+                    <p className="enterprise-choice-description">
+                      {item.description ? item.description : 'Aucune description'}
+                    </p>
+                  </div>
                 </button>
               ))}
               {entreprises.length === 0 ? (
@@ -2008,20 +2029,6 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                   ? `Carte client - ${selectedEntreprise.nomEntreprise}`
                   : 'Choisis une entreprise'}
               </h2>
-              {selectedEntreprise ? (
-                <div className="client-entreprise-meta">
-                  {selectedEntreprise.logoUrl ? (
-                    <img
-                      src={selectedEntreprise.logoUrl}
-                      alt={`Logo ${selectedEntreprise.nomEntreprise}`}
-                      className="client-entreprise-logo"
-                    />
-                  ) : null}
-                  {selectedEntreprise.description ? (
-                    <p className="small muted">{selectedEntreprise.description}</p>
-                  ) : null}
-                </div>
-              ) : null}
               <div className="client-filter-row">
                 <button
                   type="button"
