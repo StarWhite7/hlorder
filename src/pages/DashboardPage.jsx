@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const STATUS_LABELS = {
@@ -45,6 +45,11 @@ const DELIVERY_MODES = {
 const ITEM_TYPES = {
   PRODUCT: 'PRODUCT',
   MENU: 'MENU',
+}
+
+const CLIENT_RIGHT_PANEL = {
+  CART: 'CART',
+  HISTORY: 'HISTORY',
 }
 
 const HISTORY_ORDER_STATUSES = ['REFUSED', 'PICKED_UP']
@@ -802,7 +807,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
               <p className="muted">
                 {orderViewMode === ORDER_VIEW_MODES.CURRENT
                   ? 'Aucune commande en cours pour le moment.'
-                  : 'Aucune commande dans l’historique pour le moment.'}
+                  : 'Aucune commande dans lâ€™historique pour le moment.'}
               </p>
             ) : null}
           </div>
@@ -1142,7 +1147,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
                   )
                 })}
                 {menuProducts.length === 0 ? (
-                  <p className="muted small">Ajoute d’abord des produits.</p>
+                  <p className="muted small">Ajoute dâ€™abord des produits.</p>
                 ) : null}
               </div>
               <button
@@ -1307,6 +1312,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
   const [cart, setCart] = useState([])
   const [itemQuantities, setItemQuantities] = useState({})
   const [catalogItemFilter, setCatalogItemFilter] = useState(ITEM_TYPES.MENU)
+  const [clientRightPanel, setClientRightPanel] = useState(CLIENT_RIGHT_PANEL.CART)
 
   const loadData = useCallback(async (options = {}) => {
     const { silent = false } = options
@@ -1374,6 +1380,11 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
       placedOrders
         .filter((order) => order.status === 'READY')
         .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
+    [placedOrders],
+  )
+
+  const placedOrdersSorted = useMemo(
+    () => [...placedOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     [placedOrders],
   )
 
@@ -1702,129 +1713,202 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
         </div>
 
         <aside className="panel scroll-panel client-cart-panel">
-          <h2>Récapitulatif</h2>
-          <div className="stack-scroll">
-            <div className="client-cart-header">
-              <span className="client-cart-col-product">Produit</span>
-              <span aria-hidden="true"></span>
-              <span className="client-cart-col-qty">Qté</span>
-              <span aria-hidden="true"></span>
-              <span className="client-cart-col-total">Total</span>
-              <span aria-hidden="true"></span>
+          <div className="client-cart-head">
+            <h2>
+              {clientRightPanel === CLIENT_RIGHT_PANEL.CART
+                ? 'Récapitulatif'
+                : 'Historique des commandes'}
+            </h2>
+            <div className="client-right-tabs">
+              <button
+                type="button"
+                className={clientRightPanel === CLIENT_RIGHT_PANEL.CART ? 'active' : ''}
+                onClick={() => setClientRightPanel(CLIENT_RIGHT_PANEL.CART)}
+                disabled={busy}
+              >
+                Panier
+              </button>
+              <button
+                type="button"
+                className={clientRightPanel === CLIENT_RIGHT_PANEL.HISTORY ? 'active' : ''}
+                onClick={() => setClientRightPanel(CLIENT_RIGHT_PANEL.HISTORY)}
+                disabled={busy}
+              >
+                Historique des commandes
+              </button>
             </div>
-            {cartWithPrices.map((line) => (
-              <div key={line.key} className="client-cart-row-wrap">
-                <div className="client-cart-row">
-                  <span className="client-cart-name" title={line.name}>
-                    {line.name}
-                  </span>
+          </div>
+
+          {clientRightPanel === CLIENT_RIGHT_PANEL.CART ? (
+            <>
+              <div className="stack-scroll">
+                <div className="client-cart-header">
+                  <span className="client-cart-col-product">Produit</span>
+                  <span aria-hidden="true"></span>
+                  <span className="client-cart-col-qty">Qté</span>
+                  <span aria-hidden="true"></span>
+                  <span className="client-cart-col-total">Total</span>
+                  <span aria-hidden="true"></span>
+                </div>
+                {cartWithPrices.map((line) => (
+                  <div key={line.key} className="client-cart-row-wrap">
+                    <div className="client-cart-row">
+                      <span className="client-cart-name" title={line.name}>
+                        {line.name}
+                      </span>
+                      <button
+                        type="button"
+                        className="client-cart-qty-button"
+                        onClick={() => updateQuantity(line.key, line.quantity - 1)}
+                        disabled={busy}
+                        aria-label={`Retirer une unité de ${line.name}`}
+                      >
+                        -
+                      </button>
+                      <span className="client-cart-qty-value">{line.quantity}</span>
+                      <button
+                        type="button"
+                        className="client-cart-qty-button"
+                        onClick={() => updateQuantity(line.key, line.quantity + 1)}
+                        disabled={busy}
+                        aria-label={`Ajouter une unité de ${line.name}`}
+                      >
+                        +
+                      </button>
+                      <span>{formatMoney(line.lineTotal)}</span>
+                      <button
+                        type="button"
+                        className="client-cart-delete-button"
+                        onClick={() => updateQuantity(line.key, 0)}
+                        disabled={busy}
+                        aria-label={`Supprimer ${line.name} du panier`}
+                        title="Supprimer du panier"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 6h18" />
+                          <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                          <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {cartWithPrices.length === 0 ? (
+                  <p className="muted">Le panier est vide.</p>
+                ) : null}
+              </div>
+
+              <div className="client-checkout-box">
+                <div className="client-delivery-toggle">
                   <button
                     type="button"
-                    className="client-cart-qty-button"
-                    onClick={() => updateQuantity(line.key, line.quantity - 1)}
+                    className={deliveryMode === DELIVERY_MODES.WITH_DELIVERY ? 'active' : ''}
+                    onClick={() => setDeliveryMode(DELIVERY_MODES.WITH_DELIVERY)}
                     disabled={busy}
-                    aria-label={`Retirer une unité de ${line.name}`}
                   >
-                    -
+                    Avec livraison
                   </button>
-                  <span className="client-cart-qty-value">{line.quantity}</span>
                   <button
                     type="button"
-                    className="client-cart-qty-button"
-                    onClick={() => updateQuantity(line.key, line.quantity + 1)}
+                    className={deliveryMode === DELIVERY_MODES.WITHOUT_DELIVERY ? 'active' : ''}
+                    onClick={() => setDeliveryMode(DELIVERY_MODES.WITHOUT_DELIVERY)}
                     disabled={busy}
-                    aria-label={`Ajouter une unité de ${line.name}`}
                   >
-                    +
-                  </button>
-                  <span>{formatMoney(line.lineTotal)}</span>
-                  <button
-                    type="button"
-                    className="client-cart-delete-button"
-                    onClick={() => updateQuantity(line.key, 0)}
-                    disabled={busy}
-                    aria-label={`Supprimer ${line.name} du panier`}
-                    title="Supprimer du panier"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
-                      <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
-                      <path d="M10 11v6" />
-                      <path d="M14 11v6" />
-                    </svg>
+                    Sans livraison
                   </button>
                 </div>
+
+                <label className="auth-form-label">
+                  Date de réception
+                  <input
+                    type="date"
+                    min={getTodayInputDate()}
+                    value={receptionDate}
+                    onChange={(event) => setReceptionDate(event.target.value)}
+                    disabled={busy}
+                  />
+                </label>
+
+                <label className="auth-form-label">
+                  Note (optionnel)
+                  <textarea
+                    rows={2}
+                    value={buyerNote}
+                    onChange={(event) => setBuyerNote(event.target.value)}
+                    disabled={busy}
+                    placeholder="Ex: merci de sonner à l'arrivée"
+                  />
+                </label>
+
+                <div className="client-total-row">
+                  <strong>Total</strong>
+                  <strong>{formatMoney(totalAmount)}</strong>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePlaceOrder}
+                  disabled={busy || !selectedEntreprise || cart.length === 0}
+                >
+                  Envoyer la commande
+                </button>
               </div>
-            ))}
-            {cartWithPrices.length === 0 ? (
-              <p className="muted">Le panier est vide.</p>
-            ) : null}
-          </div>
+            </>
+          ) : (
+            <div className="stack-scroll client-history-list">
+              {placedOrdersSorted.map((order) => {
+                const total = (order.items || []).reduce(
+                  (sum, item) => sum + Number(item.totalPrice || 0),
+                  0,
+                )
+                const sellerName =
+                  order?.sellerEntreprise?.nomEntreprise || `Entreprise ${order?.sellerEntrepriseId}`
 
-          <div className="client-checkout-box">
-            <div className="client-delivery-toggle">
-              <button
-                type="button"
-                className={deliveryMode === DELIVERY_MODES.WITH_DELIVERY ? 'active' : ''}
-                onClick={() => setDeliveryMode(DELIVERY_MODES.WITH_DELIVERY)}
-                disabled={busy}
-              >
-                Avec livraison
-              </button>
-              <button
-                type="button"
-                className={deliveryMode === DELIVERY_MODES.WITHOUT_DELIVERY ? 'active' : ''}
-                onClick={() => setDeliveryMode(DELIVERY_MODES.WITHOUT_DELIVERY)}
-                disabled={busy}
-              >
-                Sans livraison
-              </button>
+                return (
+                  <article key={order.id} className="client-history-card">
+                    <header className="client-history-head">
+                      <div>
+                        <strong>Commande #{order.id}</strong>
+                        <p className="muted small">{sellerName}</p>
+                      </div>
+                      <span
+                        className={`status-pill status-${order.status?.toLowerCase() || 'pending'}`}
+                      >
+                        {STATUS_LABELS[order.status] || order.status}
+                      </span>
+                    </header>
+                    <p className="small muted">
+                      Créée: {formatDate(order.createdAt)} | Réception: {formatDate(order.receptionDate)}
+                    </p>
+                    <p className="small">
+                      {(order.items || [])
+                        .map((item) => `${item.itemName} x${item.quantity}`)
+                        .join(', ')}
+                    </p>
+                    <p className="small">
+                      Total: <strong>{formatMoney(total)}</strong>
+                    </p>
+                    {order.sellerNote ? (
+                      <p className="small muted">Note entreprise: {order.sellerNote}</p>
+                    ) : null}
+                  </article>
+                )
+              })}
+              {placedOrdersSorted.length === 0 ? (
+                <p className="muted">Aucune commande passée pour le moment.</p>
+              ) : null}
             </div>
-
-            <label className="auth-form-label">
-              Date de réception
-              <input
-                type="date"
-                min={getTodayInputDate()}
-                value={receptionDate}
-                onChange={(event) => setReceptionDate(event.target.value)}
-                disabled={busy}
-              />
-            </label>
-
-            <label className="auth-form-label">
-              Note (optionnel)
-              <textarea
-                rows={2}
-                value={buyerNote}
-                onChange={(event) => setBuyerNote(event.target.value)}
-                disabled={busy}
-                placeholder="Ex: merci de sonner à l'arrivée"
-              />
-            </label>
-
-            <div className="client-total-row">
-              <strong>Total</strong>
-              <strong>{formatMoney(totalAmount)}</strong>
-            </div>
-
-            <button
-              type="button"
-              onClick={handlePlaceOrder}
-              disabled={busy || !selectedEntreprise || cart.length === 0}
-            >
-              Envoyer la commande
-            </button>
-          </div>
+          )}
         </aside>
       </section>
     </main>

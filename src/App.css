@@ -517,6 +517,33 @@ button:disabled {
   color: #fff;
 }
 
+.client-cart-head {
+  display: grid;
+  gap: 8px;
+}
+
+.client-cart-head h2 {
+  margin: 0;
+}
+
+.client-right-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.client-right-tabs button {
+  margin-top: 0;
+  height: 34px;
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.client-right-tabs button.active {
+  background: #0f6fcb;
+  color: #fff;
+}
+
 .client-item-tile {
   border: 1px solid #d8e1eb;
   border-radius: 10px;
@@ -685,6 +712,33 @@ button:disabled {
   height: 16px;
   fill: none;
   stroke: currentColor;
+}
+
+.client-history-list {
+  align-content: start;
+  padding-top: 8px;
+}
+
+.client-history-card {
+  border: 1px solid #d8e1eb;
+  border-radius: 10px;
+  background: #fbfdff;
+  padding: 10px;
+}
+
+.client-history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.client-history-head p {
+  margin: 4px 0 0;
+}
+
+.client-history-card p {
+  margin: 6px 0 0;
 }
 
 .client-cart-actions {
