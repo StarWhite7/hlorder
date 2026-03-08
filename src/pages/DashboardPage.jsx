@@ -1705,31 +1705,62 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
           <h2>Récapitulatif</h2>
           <div className="stack-scroll">
             <div className="client-cart-header">
-              <span>Produit</span>
-              <span>Nb</span>
-              <span>Total</span>
+              <span className="client-cart-col-product">Produit</span>
+              <span aria-hidden="true"></span>
+              <span className="client-cart-col-qty">Qté</span>
+              <span aria-hidden="true"></span>
+              <span className="client-cart-col-total">Total</span>
+              <span aria-hidden="true"></span>
             </div>
             {cartWithPrices.map((line) => (
               <div key={line.key} className="client-cart-row-wrap">
                 <div className="client-cart-row">
-                  <span>{line.name}</span>
-                  <span>{line.quantity}</span>
-                  <span>{formatMoney(line.lineTotal)}</span>
-                </div>
-                <div className="client-cart-actions">
+                  <span className="client-cart-name" title={line.name}>
+                    {line.name}
+                  </span>
                   <button
                     type="button"
+                    className="client-cart-qty-button"
                     onClick={() => updateQuantity(line.key, line.quantity - 1)}
                     disabled={busy}
+                    aria-label={`Retirer une unité de ${line.name}`}
                   >
                     -
                   </button>
+                  <span className="client-cart-qty-value">{line.quantity}</span>
                   <button
                     type="button"
+                    className="client-cart-qty-button"
                     onClick={() => updateQuantity(line.key, line.quantity + 1)}
                     disabled={busy}
+                    aria-label={`Ajouter une unité de ${line.name}`}
                   >
                     +
+                  </button>
+                  <span>{formatMoney(line.lineTotal)}</span>
+                  <button
+                    type="button"
+                    className="client-cart-delete-button"
+                    onClick={() => updateQuantity(line.key, 0)}
+                    disabled={busy}
+                    aria-label={`Supprimer ${line.name} du panier`}
+                    title="Supprimer du panier"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                      <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                    </svg>
                   </button>
                 </div>
               </div>

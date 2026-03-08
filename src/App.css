@@ -225,6 +225,7 @@ button:disabled {
   display: grid;
   gap: 8px;
   padding-right: 4px;
+  align-content: start;
 }
 
 .picker-list {
@@ -612,7 +613,7 @@ button:disabled {
 .client-cart-header,
 .client-cart-row {
   display: grid;
-  grid-template-columns: 1fr 40px 90px;
+  grid-template-columns: minmax(0, 1fr) 28px 28px 28px 90px 34px;
   gap: 8px;
   align-items: center;
 }
@@ -630,12 +631,60 @@ button:disabled {
   border-radius: 8px;
   background: #f8fafc;
   padding: 8px;
-  display: grid;
-  gap: 6px;
 }
 
 .client-cart-row {
   font-size: 0.88rem;
+}
+
+.client-cart-name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-cart-col-qty,
+.client-cart-qty-value {
+  text-align: center;
+}
+
+.client-cart-col-total {
+  text-align: left;
+}
+
+.client-cart-qty-button {
+  margin-top: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.client-cart-qty-value {
+  font-weight: 700;
+}
+
+.client-cart-delete-button {
+  margin-top: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.client-cart-delete-button:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.client-cart-delete-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
 }
 
 .client-cart-actions {
