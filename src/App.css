@@ -486,9 +486,10 @@ button:disabled {
 
 .client-catalog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(170px, 170px));
   gap: 10px;
   align-content: start;
+  justify-content: start;
 }
 
 .client-catalog-head {
@@ -522,6 +523,8 @@ button:disabled {
   background: #f8fbff;
   display: grid;
   gap: 6px;
+  align-content: start;
+  min-width: 0;
 }
 
 .client-item-image-box {
@@ -578,6 +581,32 @@ button:disabled {
 .client-add-button {
   margin-top: 0;
   width: 100%;
+}
+
+.client-quantity-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  gap: 6px;
+  align-items: center;
+}
+
+.client-quantity-row button {
+  margin-top: 0;
+  height: 34px;
+  padding: 0;
+  font-size: 1.05rem;
+}
+
+.client-quantity-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 8px;
+  text-align: center;
+  font: inherit;
 }
 
 .client-cart-header,

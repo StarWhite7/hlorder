@@ -1305,6 +1305,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
   const [receptionDate, setReceptionDate] = useState(getTodayInputDate())
   const [buyerNote, setBuyerNote] = useState('')
   const [cart, setCart] = useState([])
+  const [itemQuantities, setItemQuantities] = useState({})
   const [catalogItemFilter, setCatalogItemFilter] = useState(ITEM_TYPES.MENU)
 
   const loadData = useCallback(async (options = {}) => {
@@ -1333,7 +1334,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
         if (previous && nextEntreprises.some((item) => item.id === previous)) {
           return previous
         }
-        return nextEntreprises[0]?.id ?? null
+        return null
       })
     } catch (err) {
       const message = err.message || 'Erreur de chargement'
@@ -1443,16 +1444,47 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
     [cartWithPrices],
   )
 
-  const addToCart = (item) => {
+  const updateCardQuantityInput = (itemKey, rawValue) => {
+    if (rawValue === '') {
+      setItemQuantities((previous) => ({
+        ...previous,
+        [itemKey]: '',
+      }))
+      return
+    }
+
+    const parsedValue = Math.floor(Number(rawValue))
+    if (!Number.isFinite(parsedValue)) return
+
+    setItemQuantities((previous) => ({
+      ...previous,
+      [itemKey]: Math.max(1, parsedValue),
+    }))
+  }
+
+  const adjustCardQuantity = (itemKey, delta) => {
+    setItemQuantities((previous) => {
+      const currentValue = Math.max(1, Number(previous[itemKey]) || 1)
+      return {
+        ...previous,
+        [itemKey]: Math.max(1, currentValue + delta),
+      }
+    })
+  }
+
+  const addToCart = (item, quantityToAdd = 1) => {
+    const safeQuantity = Math.max(1, Math.floor(Number(quantityToAdd) || 1))
     setCart((previous) => {
       const existing = previous.find((line) => line.key === item.key)
       if (existing) {
         return previous.map((line) =>
-          line.key === item.key ? { ...line, quantity: line.quantity + 1 } : line,
+          line.key === item.key
+            ? { ...line, quantity: line.quantity + safeQuantity }
+            : line,
         )
       }
 
-      return [...previous, { ...item, quantity: 1 }]
+      return [...previous, { ...item, quantity: safeQuantity }]
     })
   }
 
@@ -1470,6 +1502,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
   const handleSelectEntreprise = (entrepriseId) => {
     setSelectedEntrepriseId(entrepriseId)
     setCart([])
+    setItemQuantities({})
     setFeedback('')
     setError('')
   }
@@ -1622,10 +1655,39 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                     {formatMoney(item.priceWithoutDelivery)} /{' '}
                     {formatMoney(item.priceWithDelivery)}
                   </p>
+                  <div className="client-quantity-row">
+                    <button
+                      type="button"
+                      onClick={() => adjustCardQuantity(item.key, -1)}
+                      disabled={busy || !selectedEntreprise}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      className="client-quantity-input"
+                      value={itemQuantities[item.key] ?? 1}
+                      onChange={(event) =>
+                        updateCardQuantityInput(item.key, event.target.value)
+                      }
+                      disabled={busy || !selectedEntreprise}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => adjustCardQuantity(item.key, 1)}
+                      disabled={busy || !selectedEntreprise}
+                    >
+                      +
+                    </button>
+                  </div>
                   <button
                     type="button"
                     className="client-add-button"
-                    onClick={() => addToCart(item)}
+                    onClick={() =>
+                      addToCart(item, Math.max(1, Number(itemQuantities[item.key]) || 1))
+                    }
                     disabled={busy || !selectedEntreprise}
                   >
                     Ajouter
