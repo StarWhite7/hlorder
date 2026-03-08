@@ -55,6 +55,7 @@ const CLIENT_RIGHT_PANEL = {
 const HISTORY_ORDER_STATUSES = ['REFUSED', 'PICKED_UP']
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
 const MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 
 const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {
@@ -137,6 +138,18 @@ const noteOrSlash = (value) => {
   return text ? text : '/'
 }
 
+const isCancellationAvailable = (receptionDate) => {
+  if (!receptionDate) return false
+  const reception = new Date(receptionDate)
+  if (Number.isNaN(reception.getTime())) return false
+
+  reception.setHours(0, 0, 0, 0)
+  const availableAt = new Date(reception)
+  availableAt.setDate(availableAt.getDate() + 1)
+
+  return new Date() >= availableAt
+}
+
 const getTodayInputDate = () => {
   const now = new Date()
   const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
@@ -198,6 +211,8 @@ const OrderCard = ({
       .join('\n') || 'Aucun article'
   const canEditSellerNote = order.status === 'PENDING'
   const availableActions = NEXT_STATUS_ACTIONS[order.status] || []
+  const showCancelPreviewButton =
+    !showHistoryNotes && isCancellationAvailable(order.receptionDate)
 
   return (
     <article className="order-card">
@@ -253,6 +268,11 @@ const OrderCard = ({
                   {action.label}
                 </button>
               ))}
+              {showCancelPreviewButton ? (
+                <button type="button" className="order-cancel-preview" disabled={busy}>
+                  Annuler la commande
+                </button>
+              ) : null}
             </div>
           ) : null}
         </>
@@ -284,6 +304,19 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
     productUnits: 0,
     menuUnits: 0,
     byItem: [],
+  })
+  const [enterpriseProfile, setEnterpriseProfile] = useState({
+    id: null,
+    nomEntreprise: auth.displayName || '',
+    logoUrl: '',
+    themeColor: '#0f6fcb',
+    description: '',
+  })
+  const [customizationForm, setCustomizationForm] = useState({
+    nomEntreprise: auth.displayName || '',
+    logoUrl: '',
+    themeColor: '#0f6fcb',
+    description: '',
   })
 
   const [productForm, setProductForm] = useState({
@@ -345,6 +378,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
         entrepriseMenusPayload,
         ordersPayload,
         statsPayload,
+        entreprisePayload,
       ] =
         await Promise.all([
           apiRequest('/api/products?mine=true&catalogType=CLIENT'),
@@ -353,6 +387,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
           apiRequest('/api/menus?mine=true&catalogType=ENTREPRISE'),
           apiRequest('/api/orders?scope=received'),
           apiRequest('/api/stats'),
+          apiRequest('/api/entreprises?mine=true'),
         ])
 
       setProductsByCatalog({
@@ -373,6 +408,20 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
           byItem: [],
         },
       )
+      if (entreprisePayload?.entreprise) {
+        const profile = {
+          id: entreprisePayload.entreprise.id ?? null,
+          nomEntreprise: entreprisePayload.entreprise.nomEntreprise || auth.displayName || '',
+          logoUrl: entreprisePayload.entreprise.logoUrl || '',
+          themeColor:
+            HEX_COLOR_PATTERN.test(String(entreprisePayload.entreprise.themeColor || '')) &&
+            entreprisePayload.entreprise.themeColor
+              ? entreprisePayload.entreprise.themeColor
+              : '#0f6fcb',
+          description: entreprisePayload.entreprise.description || '',
+        }
+        setEnterpriseProfile(profile)
+      }
     } catch (err) {
       const message = err.message || 'Erreur de chargement'
       if (!silent) {
@@ -386,7 +435,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
         setLoading(false)
       }
     }
-  }, [onLoggedOut])
+  }, [auth.displayName, onLoggedOut])
 
   useEffect(() => {
     loadData()
@@ -411,6 +460,97 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
     }
     return orders.filter((order) => !HISTORY_ORDER_STATUSES.includes(order.status))
   }, [orderViewMode, orders])
+
+  const openCustomizationModal = () => {
+    setCustomizationForm({
+      nomEntreprise: enterpriseProfile.nomEntreprise || auth.displayName || '',
+      logoUrl: enterpriseProfile.logoUrl || '',
+      themeColor:
+        HEX_COLOR_PATTERN.test(String(enterpriseProfile.themeColor || '')) &&
+        enterpriseProfile.themeColor
+          ? enterpriseProfile.themeColor
+          : '#0f6fcb',
+      description: enterpriseProfile.description || '',
+    })
+    setActiveModal('customization')
+  }
+
+  const handleCustomizationLogoFileChange = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setError('Format invalide: importe uniquement un JPEG ou PNG.')
+      event.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setError('Image trop lourde: maximum 3 Mo.')
+      event.target.value = ''
+      return
+    }
+
+    try {
+      const dataUrl = await fileToDataUrl(file)
+      setCustomizationForm((previous) => ({ ...previous, logoUrl: dataUrl }))
+      setError('')
+    } catch (err) {
+      setError(err.message || "Impossible d'importer cette image")
+    }
+  }
+
+  const handleSaveCustomization = async (event) => {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+
+    const normalizedColor = String(customizationForm.themeColor || '').trim()
+    if (!HEX_COLOR_PATTERN.test(normalizedColor)) {
+      setError('Couleur invalide: format attendu #RRGGBB.')
+      setBusy(false)
+      return
+    }
+
+    if (String(customizationForm.description || '').trim().length > 120) {
+      setError('Description trop longue: 120 caractères maximum.')
+      setBusy(false)
+      return
+    }
+
+    try {
+      const payload = await apiRequest('/api/entreprises', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          nomEntreprise: customizationForm.nomEntreprise,
+          logoUrl: customizationForm.logoUrl,
+          themeColor: normalizedColor,
+          description: customizationForm.description,
+        }),
+      })
+
+      const updated = payload?.entreprise
+      if (updated) {
+        setEnterpriseProfile({
+          id: updated.id ?? null,
+          nomEntreprise: updated.nomEntreprise || customizationForm.nomEntreprise,
+          logoUrl: updated.logoUrl || '',
+          themeColor:
+            HEX_COLOR_PATTERN.test(String(updated.themeColor || '')) && updated.themeColor
+              ? updated.themeColor
+              : '#0f6fcb',
+          description: updated.description || '',
+        })
+      }
+
+      setActiveModal(null)
+      await loadData()
+    } catch (err) {
+      setError(err.message || 'Erreur lors de la sauvegarde')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const openCreateProductModal = (catalogType) => {
     setActiveCatalogType(catalogType)
@@ -743,7 +883,8 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
         <div>
           <h1>Accueil entreprise</h1>
           <p className="muted">
-            {auth.displayName} | Carte affichée: {CATALOG_LABELS[activeCatalogType]} |
+            {enterpriseProfile.nomEntreprise || auth.displayName} | Carte affichée:{' '}
+            {CATALOG_LABELS[activeCatalogType]} |
             Produits: {products.length} | Menus: {menus.length} | Commandes en attente:{' '}
             {pendingOrdersCount}
           </p>
@@ -822,6 +963,14 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
               {orderViewMode === ORDER_VIEW_MODES.CURRENT
                 ? "Voir l'historique des commandes"
                 : 'Voir les commandes en cours'}
+            </button>
+            <button
+              type="button"
+              className="action-button-info"
+              onClick={openCustomizationModal}
+              disabled={busy}
+            >
+              Personnalisation
             </button>
           </div>
         </article>
@@ -956,6 +1105,109 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
           </div>
         </article>
       </section>
+
+      {activeModal === 'customization' ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <section className="modal-card">
+            <header className="modal-header">
+              <h2>Personnalisation entreprise</h2>
+              <button type="button" onClick={() => setActiveModal(null)} disabled={busy}>
+                Fermer
+              </button>
+            </header>
+            <form className="auth-form compact" onSubmit={handleSaveCustomization}>
+              <label>
+                Nom de l'entreprise
+                <input
+                  type="text"
+                  value={customizationForm.nomEntreprise}
+                  onChange={(event) =>
+                    setCustomizationForm((previous) => ({
+                      ...previous,
+                      nomEntreprise: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </label>
+
+              <label>
+                Description (120 caractères max)
+                <textarea
+                  rows={2}
+                  maxLength={120}
+                  value={customizationForm.description}
+                  onChange={(event) =>
+                    setCustomizationForm((previous) => ({
+                      ...previous,
+                      description: event.target.value,
+                    }))
+                  }
+                  placeholder="Ex: Spécialiste sushi, livraison rapide."
+                />
+              </label>
+              <p className="small muted customization-counter">
+                {(customizationForm.description || '').length}/120
+              </p>
+
+              <div className="two-cols">
+                <label>
+                  Couleur entreprise
+                  <input
+                    type="color"
+                    value={
+                      HEX_COLOR_PATTERN.test(String(customizationForm.themeColor || ''))
+                        ? customizationForm.themeColor
+                        : '#0f6fcb'
+                    }
+                    onChange={(event) =>
+                      setCustomizationForm((previous) => ({
+                        ...previous,
+                        themeColor: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label>
+                  Code couleur (#RRGGBB)
+                  <input
+                    type="text"
+                    value={customizationForm.themeColor}
+                    onChange={(event) =>
+                      setCustomizationForm((previous) => ({
+                        ...previous,
+                        themeColor: event.target.value,
+                      }))
+                    }
+                    placeholder="#0f6fcb"
+                    required
+                  />
+                </label>
+              </div>
+
+              <label>
+                Importer un logo (JPEG ou PNG)
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                  onChange={handleCustomizationLogoFileChange}
+                />
+              </label>
+              {customizationForm.logoUrl ? (
+                <img
+                  src={customizationForm.logoUrl}
+                  alt="Aperçu du logo"
+                  className="product-image-preview"
+                />
+              ) : null}
+
+              <button type="submit" disabled={busy}>
+                Sauvegarder
+              </button>
+            </form>
+          </section>
+        </div>
+      ) : null}
 
       {activeModal === 'product' ? (
         <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -1480,6 +1732,14 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
       entreprises.find((item) => item.id === selectedEntrepriseId) || null,
     [entreprises, selectedEntrepriseId],
   )
+  const clientThemeColor = useMemo(() => {
+    const color = String(selectedEntreprise?.themeColor || '')
+    return HEX_COLOR_PATTERN.test(color) ? color : '#0f6fcb'
+  }, [selectedEntreprise])
+  const clientThemeStyle = useMemo(
+    () => ({ '--brand-color': clientThemeColor }),
+    [clientThemeColor],
+  )
 
   const readyNotifications = useMemo(
     () =>
@@ -1682,7 +1942,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
   }
 
   return (
-    <main className="dashboard-page">
+    <main className="dashboard-page client-theme" style={clientThemeStyle}>
       <header className="dashboard-topbar">
         <div>
           <h1>Passer une commande</h1>
@@ -1740,6 +2000,20 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                   ? `Carte client - ${selectedEntreprise.nomEntreprise}`
                   : 'Choisis une entreprise'}
               </h2>
+              {selectedEntreprise ? (
+                <div className="client-entreprise-meta">
+                  {selectedEntreprise.logoUrl ? (
+                    <img
+                      src={selectedEntreprise.logoUrl}
+                      alt={`Logo ${selectedEntreprise.nomEntreprise}`}
+                      className="client-entreprise-logo"
+                    />
+                  ) : null}
+                  {selectedEntreprise.description ? (
+                    <p className="small muted">{selectedEntreprise.description}</p>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="client-filter-row">
                 <button
                   type="button"
@@ -1996,7 +2270,15 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                   <article key={order.id} className="client-history-card">
                     <header className="client-history-head">
                       <div>
-                        <strong>Commande #{order.id}</strong>
+                        <div className="client-history-title-row">
+                          <strong>Commande #{order.id}</strong>
+                          {order.status === 'PENDING' &&
+                          isCancellationAvailable(order.receptionDate) ? (
+                            <button type="button" className="order-cancel-preview">
+                              Annuler la commande
+                            </button>
+                          ) : null}
+                        </div>
                         <p className="muted small">{sellerName}</p>
                       </div>
                       <span

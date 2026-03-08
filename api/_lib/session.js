@@ -90,7 +90,16 @@ export const getAuthFromRequest = async (req) => {
       userAuth: {
         include: {
           client: true,
-          entreprise: true,
+          // Keep auth loading resilient if optional profile columns are missing
+          // in a not-yet-migrated database.
+          entreprise: {
+            select: {
+              id: true,
+              nomEntreprise: true,
+              isActive: true,
+              deletedAt: true,
+            },
+          },
         },
       },
     },

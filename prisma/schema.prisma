@@ -72,6 +72,9 @@ model Client {
 model Entreprise {
   id           Int      @id @default(autoincrement())
   nomEntreprise String   @unique
+  logoUrl      String?
+  themeColor   String   @default("#0f6fcb") @db.VarChar(7)
+  description  String?  @db.VarChar(120)
   userAuthId   Int      @unique
   userAuth     UserAuth @relation(fields: [userAuthId], references: [id], onDelete: Cascade)
   isActive     Boolean   @default(true)
