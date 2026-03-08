@@ -89,6 +89,11 @@ const formatDateOnly = (value) => {
   }).format(date)
 }
 
+const noteOrSlash = (value) => {
+  const text = String(value || '').trim()
+  return text ? text : '/'
+}
+
 const getTodayInputDate = () => {
   const now = new Date()
   const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
@@ -113,7 +118,14 @@ const apiRequest = async (url, options = {}) => {
   return payload
 }
 
-const OrderCard = ({ order, note, onChangeNote, onUpdateStatus, busy }) => {
+const OrderCard = ({
+  order,
+  note,
+  onChangeNote,
+  onUpdateStatus,
+  busy,
+  showHistoryNotes = false,
+}) => {
   const buyerName =
     order?.buyerUserAuth?.entreprise?.nomEntreprise ||
     order?.buyerUserAuth?.client?.pseudo ||
@@ -141,6 +153,8 @@ const OrderCard = ({ order, note, onChangeNote, onUpdateStatus, busy }) => {
         return `${baseLine} :\n${compositionLines.join('\n')}`
       })
       .join('\n') || 'Aucun article'
+  const canEditSellerNote = order.status === 'PENDING'
+  const availableActions = NEXT_STATUS_ACTIONS[order.status] || []
 
   return (
     <article className="order-card">
@@ -164,25 +178,42 @@ const OrderCard = ({ order, note, onChangeNote, onUpdateStatus, busy }) => {
       <div className="order-divider" />
       <p className="small order-items">{itemLines}</p>
 
-      <textarea
-        rows={2}
-        placeholder="Note entreprise (optionnel)"
-        value={note}
-        onChange={(event) => onChangeNote(order.id, event.target.value)}
-      />
+      {showHistoryNotes ? (
+        <>
+          <div className="order-divider" />
+          <p className="small muted">Note client: {noteOrSlash(order.buyerNote)}</p>
+          <p className="small muted">Note entreprise: {noteOrSlash(order.sellerNote)}</p>
+        </>
+      ) : (
+        <>
+          <textarea
+            rows={2}
+            placeholder={
+              canEditSellerNote
+                ? 'Note entreprise (optionnel)'
+                : 'Note entreprise verrouillée'
+            }
+            value={note}
+            onChange={(event) => onChangeNote(order.id, event.target.value)}
+            disabled={busy || !canEditSellerNote}
+          />
 
-      <div className="order-actions">
-        {(NEXT_STATUS_ACTIONS[order.status] || []).map((action) => (
-          <button
-            key={action.status}
-            type="button"
-            onClick={() => onUpdateStatus(order.id, action.status)}
-            disabled={busy}
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
+          {availableActions.length > 0 ? (
+            <div className="order-actions">
+              {availableActions.map((action) => (
+                <button
+                  key={action.status}
+                  type="button"
+                  onClick={() => onUpdateStatus(order.id, action.status, order.status)}
+                  disabled={busy}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </>
+      )}
     </article>
   )
 }
@@ -638,16 +669,18 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
     }))
   }
 
-  const handleOrderStatusUpdate = async (orderId, status) => {
+  const handleOrderStatusUpdate = async (orderId, status, currentStatus) => {
     setBusy(true)
     setError('')
     try {
+      const payload = { status }
+      if (currentStatus === 'PENDING') {
+        payload.sellerNote = orderNotes[orderId] || ''
+      }
+
       await apiRequest(`/api/orders/${orderId}`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          status,
-          sellerNote: orderNotes[orderId] || '',
-        }),
+        body: JSON.stringify(payload),
       })
       await loadData()
     } catch (err) {
@@ -830,6 +863,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
                 onChangeNote={handleOrderNoteChange}
                 onUpdateStatus={handleOrderStatusUpdate}
                 busy={busy}
+                showHistoryNotes={orderViewMode === ORDER_VIEW_MODES.HISTORY}
               />
             ))}
             {filteredOrders.length === 0 ? (
@@ -1927,9 +1961,11 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                     <p className="small">
                       Total: <strong>{formatMoney(total)}</strong>
                     </p>
-                    {order.sellerNote ? (
-                      <p className="small muted">Note entreprise: {order.sellerNote}</p>
-                    ) : null}
+                    <div className="order-divider" />
+                    <p className="small muted">Note client: {noteOrSlash(order.buyerNote)}</p>
+                    <p className="small muted">
+                      Note entreprise: {noteOrSlash(order.sellerNote)}
+                    </p>
                   </article>
                 )
               })}

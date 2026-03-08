@@ -113,6 +113,13 @@ export default async function handler(req, res) {
         }
       }
 
+      if (sellerNote != null && order.status !== 'PENDING') {
+        return res.status(400).json({
+          error:
+            "La note entreprise ne peut plus être modifiée après acceptation ou refus",
+        })
+      }
+
       const updatedOrder = await prisma.order.update({
         where: { id: orderId },
         data: {
