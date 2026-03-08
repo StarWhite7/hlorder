@@ -80,6 +80,15 @@ const formatDate = (value) => {
   }).format(date)
 }
 
+const formatTimeOnly = (value) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeStyle: 'short',
+  }).format(date)
+}
+
 const formatDateOnly = (value) => {
   if (!value) return '-'
   const date = new Date(value)
@@ -87,6 +96,40 @@ const formatDateOnly = (value) => {
   return new Intl.DateTimeFormat('fr-FR', {
     dateStyle: 'short',
   }).format(date)
+}
+
+const isSameCalendarDay = (left, right) =>
+  left.getFullYear() === right.getFullYear() &&
+  left.getMonth() === right.getMonth() &&
+  left.getDate() === right.getDate()
+
+const formatReceptionDateLabel = (value) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+
+  const today = new Date()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+
+  if (isSameCalendarDay(date, today)) return "Aujourd'hui"
+  if (isSameCalendarDay(date, tomorrow)) return 'Demain'
+  return formatDateOnly(value)
+}
+
+const formatCreatedDateLabel = (value) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+
+  const today = new Date()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+  const time = formatTimeOnly(value)
+
+  if (isSameCalendarDay(date, today)) return `Aujourd'hui ${time}`
+  if (isSameCalendarDay(date, tomorrow)) return `Demain ${time}`
+  return formatDate(value)
 }
 
 const noteOrSlash = (value) => {
@@ -169,8 +212,8 @@ const OrderCard = ({
       </header>
 
       <p className="small muted">
-        Créée: {formatDate(order.createdAt)} | Réception de la commande:{' '}
-        {formatDateOnly(order.receptionDate)}
+        Créée: {formatCreatedDateLabel(order.createdAt)} | Réception de la commande:{' '}
+        {formatReceptionDateLabel(order.receptionDate)}
       </p>
       <p className="small">
         Total: <strong>{formatMoney(total)}</strong>
@@ -1963,7 +2006,8 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                       </span>
                     </header>
                     <p className="small muted">
-                      Créée: {formatDate(order.createdAt)} | Réception: {formatDate(order.receptionDate)}
+                      Créée: {formatCreatedDateLabel(order.createdAt)} | Réception de la commande:{' '}
+                      {formatReceptionDateLabel(order.receptionDate)}
                     </p>
                     <p className="small">
                       {(order.items || [])
