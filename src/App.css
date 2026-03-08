@@ -563,6 +563,14 @@ button:disabled {
   background: #166534;
 }
 
+.action-button-warning {
+  background: #ca8a04;
+}
+
+.action-button-warning:hover:not(:disabled) {
+  background: #a16207;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;

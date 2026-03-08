@@ -32,6 +32,11 @@ const CATALOG_LABELS = {
   ENTREPRISE: 'Carte entreprise',
 }
 
+const ORDER_VIEW_MODES = {
+  CURRENT: 'CURRENT',
+  HISTORY: 'HISTORY',
+}
+
 const DELIVERY_MODES = {
   WITH_DELIVERY: 'WITH_DELIVERY',
   WITHOUT_DELIVERY: 'WITHOUT_DELIVERY',
@@ -41,6 +46,8 @@ const ITEM_TYPES = {
   PRODUCT: 'PRODUCT',
   MENU: 'MENU',
 }
+
+const HISTORY_ORDER_STATUSES = ['REFUSED', 'PICKED_UP']
 
 const formatMoney = (value) =>
   new Intl.NumberFormat('fr-FR', {
@@ -142,6 +149,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
   const [busy, setBusy] = useState(false)
   const [activeModal, setActiveModal] = useState(null)
   const [activeCatalogType, setActiveCatalogType] = useState(CATALOG_TYPES.CLIENT)
+  const [orderViewMode, setOrderViewMode] = useState(ORDER_VIEW_MODES.CURRENT)
 
   const [productsByCatalog, setProductsByCatalog] = useState({
     [CATALOG_TYPES.CLIENT]: [],
@@ -278,6 +286,13 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
     () => orders.filter((order) => order.status === 'PENDING').length,
     [orders],
   )
+
+  const filteredOrders = useMemo(() => {
+    if (orderViewMode === ORDER_VIEW_MODES.HISTORY) {
+      return orders.filter((order) => HISTORY_ORDER_STATUSES.includes(order.status))
+    }
+    return orders.filter((order) => !HISTORY_ORDER_STATUSES.includes(order.status))
+  }, [orderViewMode, orders])
 
   const openCreateProductModal = (catalogType) => {
     setActiveCatalogType(catalogType)
@@ -619,8 +634,24 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
               disabled={busy}
             >
               {activeCatalogType === CATALOG_TYPES.CLIENT
-                ? 'Voir le catalogue entreprise'
+                ? 'Voir la carte entreprise'
                 : 'Voir la carte client'}
+            </button>
+            <button
+              type="button"
+              className="action-button-warning"
+              onClick={() =>
+                setOrderViewMode((previous) =>
+                  previous === ORDER_VIEW_MODES.CURRENT
+                    ? ORDER_VIEW_MODES.HISTORY
+                    : ORDER_VIEW_MODES.CURRENT,
+                )
+              }
+              disabled={busy}
+            >
+              {orderViewMode === ORDER_VIEW_MODES.CURRENT
+                ? "Voir l'historique des commandes"
+                : 'Voir les commandes en cours'}
             </button>
           </div>
         </article>
@@ -686,9 +717,13 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
         </article>
 
         <article className="panel scroll-panel">
-          <h2>Commandes reçues</h2>
+          <h2>
+            {orderViewMode === ORDER_VIEW_MODES.CURRENT
+              ? 'Commandes en cours'
+              : 'Historique des commandes'}
+          </h2>
           <div className="stack-scroll">
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <OrderCard
                 key={order.id}
                 order={order}
@@ -698,8 +733,12 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
                 busy={busy}
               />
             ))}
-            {orders.length === 0 ? (
-              <p className="muted">Aucune commande reçue pour le moment.</p>
+            {filteredOrders.length === 0 ? (
+              <p className="muted">
+                {orderViewMode === ORDER_VIEW_MODES.CURRENT
+                  ? 'Aucune commande en cours pour le moment.'
+                  : 'Aucune commande dans l’historique pour le moment.'}
+              </p>
             ) : null}
           </div>
         </article>
