@@ -34,9 +34,12 @@ const LoginPage = ({ onLoggedIn }) => {
         }),
       })
 
-      const payload = await response.json()
+      const payload = await response.json().catch(() => ({}))
       if (!response.ok) {
-        throw new Error(payload.error || 'Connexion impossible')
+        throw new Error(
+          payload.error ||
+            'Connexion impossible. Vérifie que tu lances bien `npx vercel dev` en local.',
+        )
       }
 
       if (typeof onLoggedIn === 'function') {

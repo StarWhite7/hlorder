@@ -37,9 +37,12 @@ const RegisterPage = () => {
         body: JSON.stringify(body),
       })
 
-      const payload = await response.json()
+      const payload = await response.json().catch(() => ({}))
       if (!response.ok) {
-        throw new Error(payload.error || 'Inscription impossible')
+        throw new Error(
+          payload.error ||
+            'Inscription impossible. Vérifie que tu lances bien `npx vercel dev` en local.',
+        )
       }
 
       if (role === ROLES.CLIENT) {
