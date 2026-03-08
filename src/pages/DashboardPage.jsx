@@ -48,6 +48,16 @@ const ITEM_TYPES = {
 }
 
 const HISTORY_ORDER_STATUSES = ['REFUSED', 'PICKED_UP']
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png']
+const MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024
+
+const fileToDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(new Error('Lecture du fichier impossible'))
+    reader.readAsDataURL(file)
+  })
 
 const formatMoney = (value) =>
   new Intl.NumberFormat('fr-FR', {
@@ -347,6 +357,31 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
     }
   }
 
+  const handleCreateProductFileChange = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setError('Format invalide: importe uniquement un JPEG ou PNG.')
+      event.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setError('Image trop lourde: maximum 3 Mo.')
+      event.target.value = ''
+      return
+    }
+
+    try {
+      const dataUrl = await fileToDataUrl(file)
+      setProductForm((previous) => ({ ...previous, imageUrl: dataUrl }))
+      setError('')
+    } catch (err) {
+      setError(err.message || "Impossible d'importer cette image")
+    }
+  }
+
   const openEditProductModal = (product) => {
     const catalogType = product.catalogType || CATALOG_TYPES.CLIENT
     setActiveCatalogType(catalogType)
@@ -385,6 +420,31 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
       setError(err.message)
     } finally {
       setBusy(false)
+    }
+  }
+
+  const handleEditProductFileChange = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setError('Format invalide: importe uniquement un JPEG ou PNG.')
+      event.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setError('Image trop lourde: maximum 3 Mo.')
+      event.target.value = ''
+      return
+    }
+
+    try {
+      const dataUrl = await fileToDataUrl(file)
+      setEditProductForm((previous) => ({ ...previous, imageUrl: dataUrl }))
+      setError('')
+    } catch (err) {
+      setError(err.message || "Impossible d'importer cette image")
     }
   }
 
@@ -658,7 +718,7 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
 
         <article className="panel scroll-panel">
           <h2>{CATALOG_LABELS[activeCatalogType]}</h2>
-          <div className="stack-scroll small-list">
+          <div className="stack-scroll small-list catalog-list">
             {products.map((product) => (
               <button
                 key={`product-${product.id}`}
@@ -676,6 +736,11 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
                     {formatMoney(product.priceWithDelivery)}
                   </span>
                 </div>
+                {product.imageUrl ? (
+                  <div className="catalog-square-image">
+                    <img src={product.imageUrl} alt={product.name} />
+                  </div>
+                ) : null}
               </button>
             ))}
 
@@ -796,55 +861,65 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
               </button>
             </header>
             <form className="auth-form compact" onSubmit={handleCreateProduct}>
-              <input
-                type="text"
-                placeholder="Nom du produit"
-                value={productForm.name}
-                onChange={(event) =>
-                  setProductForm((previous) => ({ ...previous, name: event.target.value }))
-                }
-                required
-              />
-              <input
-                type="text"
-                placeholder="Image URL (optionnel)"
-                value={productForm.imageUrl}
-                onChange={(event) =>
-                  setProductForm((previous) => ({
-                    ...previous,
-                    imageUrl: event.target.value,
-                  }))
-                }
-              />
+              <label>
+                Nom du produit
+                <input
+                  type="text"
+                  value={productForm.name}
+                  onChange={(event) =>
+                    setProductForm((previous) => ({ ...previous, name: event.target.value }))
+                  }
+                  required
+                />
+              </label>
+              <label>
+                Importer une image (JPEG ou PNG)
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  onChange={handleCreateProductFileChange}
+                />
+              </label>
+              {productForm.imageUrl ? (
+                <img
+                  src={productForm.imageUrl}
+                  alt="Aperçu du produit"
+                  className="product-image-preview"
+                />
+              ) : null}
               <div className="two-cols">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prix avec livraison"
-                  value={productForm.priceWithDelivery}
-                  onChange={(event) =>
-                    setProductForm((previous) => ({
-                      ...previous,
-                      priceWithDelivery: event.target.value,
-                    }))
-                  }
-                  required
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prix sans livraison"
-                  value={productForm.priceWithoutDelivery}
-                  onChange={(event) =>
-                    setProductForm((previous) => ({
-                      ...previous,
-                      priceWithoutDelivery: event.target.value,
-                    }))
-                  }
-                  required
-                />
+                <label>
+                  Prix avec livraison
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={productForm.priceWithDelivery}
+                    onChange={(event) =>
+                      setProductForm((previous) => ({
+                        ...previous,
+                        priceWithDelivery: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  Prix sans livraison
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={productForm.priceWithoutDelivery}
+                    onChange={(event) =>
+                      setProductForm((previous) => ({
+                        ...previous,
+                        priceWithoutDelivery: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </label>
               </div>
               <button type="submit" disabled={busy}>
                 Enregistrer
@@ -864,58 +939,68 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
               </button>
             </header>
             <form className="auth-form compact" onSubmit={handleEditProduct}>
-              <input
-                type="text"
-                placeholder="Nom du produit"
-                value={editProductForm.name}
-                onChange={(event) =>
-                  setEditProductForm((previous) => ({
-                    ...previous,
-                    name: event.target.value,
-                  }))
-                }
-                required
-              />
-              <input
-                type="text"
-                placeholder="Image URL (optionnel)"
-                value={editProductForm.imageUrl}
-                onChange={(event) =>
-                  setEditProductForm((previous) => ({
-                    ...previous,
-                    imageUrl: event.target.value,
-                  }))
-                }
-              />
+              <label>
+                Nom du produit
+                <input
+                  type="text"
+                  value={editProductForm.name}
+                  onChange={(event) =>
+                    setEditProductForm((previous) => ({
+                      ...previous,
+                      name: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </label>
+              <label>
+                Importer une image (JPEG ou PNG)
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  onChange={handleEditProductFileChange}
+                />
+              </label>
+              {editProductForm.imageUrl ? (
+                <img
+                  src={editProductForm.imageUrl}
+                  alt="Aperçu du produit"
+                  className="product-image-preview"
+                />
+              ) : null}
               <div className="two-cols">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prix avec livraison"
-                  value={editProductForm.priceWithDelivery}
-                  onChange={(event) =>
-                    setEditProductForm((previous) => ({
-                      ...previous,
-                      priceWithDelivery: event.target.value,
-                    }))
-                  }
-                  required
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prix sans livraison"
-                  value={editProductForm.priceWithoutDelivery}
-                  onChange={(event) =>
-                    setEditProductForm((previous) => ({
-                      ...previous,
-                      priceWithoutDelivery: event.target.value,
-                    }))
-                  }
-                  required
-                />
+                <label>
+                  Prix avec livraison
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editProductForm.priceWithDelivery}
+                    onChange={(event) =>
+                      setEditProductForm((previous) => ({
+                        ...previous,
+                        priceWithDelivery: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  Prix sans livraison
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editProductForm.priceWithoutDelivery}
+                    onChange={(event) =>
+                      setEditProductForm((previous) => ({
+                        ...previous,
+                        priceWithoutDelivery: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </label>
               </div>
 
               <label>
@@ -971,52 +1056,50 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
               </button>
             </header>
             <form className="auth-form compact" onSubmit={handleCreateMenu}>
-              <input
-                type="text"
-                placeholder="Nom du menu"
-                value={menuForm.name}
-                onChange={(event) =>
-                  setMenuForm((previous) => ({ ...previous, name: event.target.value }))
-                }
-                required
-              />
-              <input
-                type="text"
-                placeholder="Image URL (optionnel)"
-                value={menuForm.imageUrl}
-                onChange={(event) =>
-                  setMenuForm((previous) => ({ ...previous, imageUrl: event.target.value }))
-                }
-              />
+              <label>
+                Nom du menu
+                <input
+                  type="text"
+                  value={menuForm.name}
+                  onChange={(event) =>
+                    setMenuForm((previous) => ({ ...previous, name: event.target.value }))
+                  }
+                  required
+                />
+              </label>
               <div className="two-cols">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prix avec livraison"
-                  value={menuForm.priceWithDelivery}
-                  onChange={(event) =>
-                    setMenuForm((previous) => ({
-                      ...previous,
-                      priceWithDelivery: event.target.value,
-                    }))
-                  }
-                  required
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prix sans livraison"
-                  value={menuForm.priceWithoutDelivery}
-                  onChange={(event) =>
-                    setMenuForm((previous) => ({
-                      ...previous,
-                      priceWithoutDelivery: event.target.value,
-                    }))
-                  }
-                  required
-                />
+                <label>
+                  Prix avec livraison
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={menuForm.priceWithDelivery}
+                    onChange={(event) =>
+                      setMenuForm((previous) => ({
+                        ...previous,
+                        priceWithDelivery: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  Prix sans livraison
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={menuForm.priceWithoutDelivery}
+                    onChange={(event) =>
+                      setMenuForm((previous) => ({
+                        ...previous,
+                        priceWithoutDelivery: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </label>
               </div>
               <label>
                 Carte
@@ -1083,58 +1166,53 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
               </button>
             </header>
             <form className="auth-form compact" onSubmit={handleEditMenu}>
-              <input
-                type="text"
-                placeholder="Nom du menu"
-                value={editMenuForm.name}
-                onChange={(event) =>
-                  setEditMenuForm((previous) => ({
-                    ...previous,
-                    name: event.target.value,
-                  }))
-                }
-                required
-              />
-              <input
-                type="text"
-                placeholder="Image URL (optionnel)"
-                value={editMenuForm.imageUrl}
-                onChange={(event) =>
-                  setEditMenuForm((previous) => ({
-                    ...previous,
-                    imageUrl: event.target.value,
-                  }))
-                }
-              />
+              <label>
+                Nom du menu
+                <input
+                  type="text"
+                  value={editMenuForm.name}
+                  onChange={(event) =>
+                    setEditMenuForm((previous) => ({
+                      ...previous,
+                      name: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </label>
               <div className="two-cols">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prix avec livraison"
-                  value={editMenuForm.priceWithDelivery}
-                  onChange={(event) =>
-                    setEditMenuForm((previous) => ({
-                      ...previous,
-                      priceWithDelivery: event.target.value,
-                    }))
-                  }
-                  required
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Prix sans livraison"
-                  value={editMenuForm.priceWithoutDelivery}
-                  onChange={(event) =>
-                    setEditMenuForm((previous) => ({
-                      ...previous,
-                      priceWithoutDelivery: event.target.value,
-                    }))
-                  }
-                  required
-                />
+                <label>
+                  Prix avec livraison
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editMenuForm.priceWithDelivery}
+                    onChange={(event) =>
+                      setEditMenuForm((previous) => ({
+                        ...previous,
+                        priceWithDelivery: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </label>
+                <label>
+                  Prix sans livraison
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editMenuForm.priceWithoutDelivery}
+                    onChange={(event) =>
+                      setEditMenuForm((previous) => ({
+                        ...previous,
+                        priceWithoutDelivery: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </label>
               </div>
 
               <label>
