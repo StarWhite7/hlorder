@@ -548,6 +548,25 @@ button:disabled {
   margin-bottom: 8px;
 }
 
+.client-search-field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.client-search-field input {
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 10px;
+  font: inherit;
+}
+
+.client-catalog-grid {
+  margin-top: 8px;
+}
+
 .client-filter-button {
   margin-top: 0;
   height: 34px;

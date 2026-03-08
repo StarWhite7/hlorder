@@ -1670,6 +1670,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
   const [cart, setCart] = useState([])
   const [itemQuantities, setItemQuantities] = useState({})
   const [catalogItemFilter, setCatalogItemFilter] = useState(ITEM_TYPES.MENU)
+  const [catalogSearch, setCatalogSearch] = useState('')
   const [clientRightPanel, setClientRightPanel] = useState(CLIENT_RIGHT_PANEL.CART)
 
   const loadData = useCallback(async (options = {}) => {
@@ -1791,10 +1792,17 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
     )
   }, [menus, products, selectedEntrepriseId])
 
-  const visibleOrderableItems = useMemo(
-    () => orderableItems.filter((item) => item.itemType === catalogItemFilter),
-    [catalogItemFilter, orderableItems],
-  )
+  const visibleOrderableItems = useMemo(() => {
+    const normalizedSearch = String(catalogSearch || '').trim().toLowerCase()
+
+    return orderableItems.filter((item) => {
+      if (item.itemType !== catalogItemFilter) return false
+      if (!normalizedSearch) return true
+
+      const searchableText = `${item.name} ${item.details}`.toLowerCase()
+      return searchableText.includes(normalizedSearch)
+    })
+  }, [catalogItemFilter, catalogSearch, orderableItems])
 
   const toggleCatalogItemFilter = (itemType) => {
     setCatalogItemFilter(itemType)
@@ -2036,6 +2044,16 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
                   Produit
                 </button>
               </div>
+              <label className="client-search-field">
+                Rechercher un menu ou un produit
+                <input
+                  type="text"
+                  placeholder="Ex: saumon, menu duo..."
+                  value={catalogSearch}
+                  onChange={(event) => setCatalogSearch(event.target.value)}
+                  disabled={busy || !selectedEntreprise}
+                />
+              </label>
             </div>
             <div className="stack-scroll client-catalog-grid">
               {visibleOrderableItems.map((item) => (
