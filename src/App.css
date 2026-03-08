@@ -213,6 +213,7 @@ button:disabled {
 .order-head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 8px;
 }
 
@@ -239,10 +240,16 @@ button:disabled {
 }
 
 .status-pill {
-  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  line-height: 1;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .status-pending {

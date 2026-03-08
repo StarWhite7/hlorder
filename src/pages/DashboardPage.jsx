@@ -202,9 +202,13 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
   const menuProducts = productsByCatalog[menuForm.catalogType] || []
   const editMenuProducts = productsByCatalog[editMenuForm.catalogType] || []
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    setError('')
+  const loadData = useCallback(async (options = {}) => {
+    const { silent = false } = options
+    if (!silent) {
+      setLoading(true)
+      setError('')
+    }
+
     try {
       const [
         clientProductsPayload,
@@ -243,17 +247,29 @@ const EnterpriseHome = ({ auth, onLoggedOut, onLogout }) => {
       )
     } catch (err) {
       const message = err.message || 'Erreur de chargement'
-      setError(message)
+      if (!silent) {
+        setError(message)
+      }
       if (message.includes('Non authentifié')) {
         await onLoggedOut()
       }
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [onLoggedOut])
 
   useEffect(() => {
     loadData()
+  }, [loadData])
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      loadData({ silent: true })
+    }, 10000)
+
+    return () => clearInterval(intervalId)
   }, [loadData])
 
   const pendingOrdersCount = useMemo(
