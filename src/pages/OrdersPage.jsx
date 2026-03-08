@@ -127,6 +127,18 @@ const OrdersTable = ({
                             type="button"
                             className="mini-button"
                             onClick={() =>
+                              onStatusAction(order.id, ORDER_STATUSES.READY)
+                            }
+                          >
+                            Commande prete
+                          </button>
+                        )}
+
+                        {order.status === ORDER_STATUSES.READY && (
+                          <button
+                            type="button"
+                            className="mini-button"
+                            onClick={() =>
                               onStatusAction(order.id, ORDER_STATUSES.PICKED_UP)
                             }
                           >
@@ -179,7 +191,7 @@ const OrdersPage = () => {
         <h2>Historique et suivi des commandes</h2>
         <p className="muted">
           Statuts disponibles: En attente, Acceptee, Refusee, En preparation,
-          Commande recuperee.
+          Commande prete, Commande recuperee.
         </p>
       </header>
 

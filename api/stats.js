@@ -2,7 +2,7 @@ import { prisma } from './_lib/prisma.js'
 import { requireAuth } from './_lib/auth.js'
 import { getEntrepriseByUserAuthId } from './_lib/entreprise.js'
 
-const SOLD_STATUSES = ['ACCEPTED', 'PREPARING', 'PICKED_UP']
+const SOLD_STATUSES = ['ACCEPTED', 'PREPARING', 'READY', 'PICKED_UP']
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

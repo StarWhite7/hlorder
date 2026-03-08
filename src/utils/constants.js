@@ -13,6 +13,7 @@ export const ORDER_STATUSES = {
   ACCEPTED: 'accepted',
   REFUSED: 'refused',
   PREPARING: 'preparing',
+  READY: 'ready',
   PICKED_UP: 'picked_up',
 }
 
@@ -21,6 +22,7 @@ export const ORDER_STATUS_LABELS = {
   [ORDER_STATUSES.ACCEPTED]: 'Acceptee',
   [ORDER_STATUSES.REFUSED]: 'Refusee',
   [ORDER_STATUSES.PREPARING]: 'En preparation',
+  [ORDER_STATUSES.READY]: 'Commande prete',
   [ORDER_STATUSES.PICKED_UP]: 'Commande recuperee',
 }
 

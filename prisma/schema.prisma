@@ -22,6 +22,7 @@ enum OrderStatus {
   ACCEPTED
   REFUSED
   PREPARING
+  READY
   PICKED_UP
 }
 

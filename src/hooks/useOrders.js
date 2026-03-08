@@ -10,6 +10,7 @@ import { getItemPrice } from '../utils/pricing.js'
 const SOLD_STATUSES = [
   ORDER_STATUSES.ACCEPTED,
   ORDER_STATUSES.PREPARING,
+  ORDER_STATUSES.READY,
   ORDER_STATUSES.PICKED_UP,
 ]
 

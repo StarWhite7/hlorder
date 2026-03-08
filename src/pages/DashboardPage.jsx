@@ -6,6 +6,7 @@ const STATUS_LABELS = {
   ACCEPTED: 'Acceptée',
   REFUSED: 'Refusée',
   PREPARING: 'En préparation',
+  READY: 'Commande prête',
   PICKED_UP: 'Récupérée',
 }
 
@@ -15,7 +16,8 @@ const NEXT_STATUS_ACTIONS = {
     { status: 'REFUSED', label: 'Refuser' },
   ],
   ACCEPTED: [{ status: 'PREPARING', label: 'Passer en préparation' }],
-  PREPARING: [{ status: 'PICKED_UP', label: 'Marquer récupérée' }],
+  PREPARING: [{ status: 'READY', label: 'Commande prête' }],
+  READY: [{ status: 'PICKED_UP', label: 'Marquer récupérée' }],
   REFUSED: [],
   PICKED_UP: [],
 }
@@ -1179,6 +1181,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
   const [entreprises, setEntreprises] = useState([])
   const [products, setProducts] = useState([])
   const [menus, setMenus] = useState([])
+  const [placedOrders, setPlacedOrders] = useState([])
   const [selectedEntrepriseId, setSelectedEntrepriseId] = useState(null)
 
   const [deliveryMode, setDeliveryMode] = useState(DELIVERY_MODES.WITH_DELIVERY)
@@ -1186,21 +1189,27 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
   const [buyerNote, setBuyerNote] = useState('')
   const [cart, setCart] = useState([])
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    setError('')
+  const loadData = useCallback(async (options = {}) => {
+    const { silent = false } = options
+    if (!silent) {
+      setLoading(true)
+      setError('')
+    }
 
     try {
-      const [entreprisesPayload, productsPayload, menusPayload] = await Promise.all([
-        apiRequest('/api/entreprises'),
-        apiRequest('/api/products'),
-        apiRequest('/api/menus'),
-      ])
+      const [entreprisesPayload, productsPayload, menusPayload, ordersPayload] =
+        await Promise.all([
+          apiRequest('/api/entreprises'),
+          apiRequest('/api/products'),
+          apiRequest('/api/menus'),
+          apiRequest('/api/orders?scope=placed'),
+        ])
 
       const nextEntreprises = entreprisesPayload.entreprises || []
       setEntreprises(nextEntreprises)
       setProducts(productsPayload.products || [])
       setMenus(menusPayload.menus || [])
+      setPlacedOrders(ordersPayload.placed || [])
 
       setSelectedEntrepriseId((previous) => {
         if (previous && nextEntreprises.some((item) => item.id === previous)) {
@@ -1210,12 +1219,16 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
       })
     } catch (err) {
       const message = err.message || 'Erreur de chargement'
-      setError(message)
+      if (!silent) {
+        setError(message)
+      }
       if (message.includes('Non authentifié') && typeof onLoggedOut === 'function') {
         await onLoggedOut()
       }
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [onLoggedOut])
 
@@ -1223,10 +1236,26 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
     loadData()
   }, [loadData])
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      loadData({ silent: true })
+    }, 10000)
+
+    return () => clearInterval(intervalId)
+  }, [loadData])
+
   const selectedEntreprise = useMemo(
     () =>
       entreprises.find((item) => item.id === selectedEntrepriseId) || null,
     [entreprises, selectedEntrepriseId],
+  )
+
+  const readyNotifications = useMemo(
+    () =>
+      placedOrders
+        .filter((order) => order.status === 'READY')
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
+    [placedOrders],
   )
 
   const orderableItems = useMemo(() => {
@@ -1350,6 +1379,7 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
       setCart([])
       setBuyerNote('')
       setFeedback('Commande envoyée avec succès.')
+      await loadData({ silent: true })
     } catch (err) {
       const message = err.message || 'Erreur lors de la commande'
       setError(message)
@@ -1379,6 +1409,19 @@ const ClientHome = ({ auth, onLogout, onLoggedOut }) => {
 
       {error ? <p className="error">{error}</p> : null}
       {feedback ? <p className="success">{feedback}</p> : null}
+      {readyNotifications.length > 0 ? (
+        <section className="client-ready-box">
+          <h2>Notifications</h2>
+          <div className="client-ready-list">
+            {readyNotifications.map((order) => (
+              <p key={order.id}>
+                Commande #{order.id} chez {order.sellerEntreprise?.nomEntreprise || 'Entreprise'}:{' '}
+                prête à être récupérée.
+              </p>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="client-grid">
         <article className="panel scroll-panel">
