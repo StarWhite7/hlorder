@@ -1,9 +1,16 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 const ROLES = {
   CLIENT: 'CLIENT',
   ENTREPRISE: 'ENTREPRISE',
+}
+
+const getFallbackLoginError = () => {
+  if (window.location.hostname === 'localhost') {
+    return 'Connexion impossible en local. Verifie que `npx vercel dev` est lance.'
+  }
+  return 'Connexion impossible sur le serveur. Verifie le deployement Vercel et les variables d environnement.'
 }
 
 const LoginPage = ({ onLoggedIn }) => {
@@ -14,8 +21,7 @@ const LoginPage = ({ onLoggedIn }) => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const identifierLabel =
-    role === ROLES.CLIENT ? 'Pseudo' : "Nom de l'entreprise"
+  const identifierLabel = role === ROLES.CLIENT ? 'Pseudo' : "Nom de l'entreprise"
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -34,12 +40,11 @@ const LoginPage = ({ onLoggedIn }) => {
         }),
       })
 
-      const payload = await response.json().catch(() => ({}))
+      const payload = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error(
-          payload.error ||
-            'Connexion impossible. Vérifie que tu lances bien `npx vercel dev` en local.',
-        )
+        const apiError =
+          payload && typeof payload.error === 'string' ? payload.error : getFallbackLoginError()
+        throw new Error(`${apiError} (HTTP ${response.status})`)
       }
 
       if (typeof onLoggedIn === 'function') {

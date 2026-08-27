@@ -1,9 +1,16 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 const ROLES = {
   CLIENT: 'CLIENT',
   ENTREPRISE: 'ENTREPRISE',
+}
+
+const getFallbackRegisterError = () => {
+  if (window.location.hostname === 'localhost') {
+    return 'Inscription impossible en local. Verifie que `npx vercel dev` est lance.'
+  }
+  return 'Inscription impossible sur le serveur. Verifie le deployement Vercel et les variables d environnement.'
 }
 
 const RegisterPage = () => {
@@ -37,12 +44,13 @@ const RegisterPage = () => {
         body: JSON.stringify(body),
       })
 
-      const payload = await response.json().catch(() => ({}))
+      const payload = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error(
-          payload.error ||
-            'Inscription impossible. Vérifie que tu lances bien `npx vercel dev` en local.',
-        )
+        const apiError =
+          payload && typeof payload.error === 'string'
+            ? payload.error
+            : getFallbackRegisterError()
+        throw new Error(`${apiError} (HTTP ${response.status})`)
       }
 
       if (role === ROLES.CLIENT) {
